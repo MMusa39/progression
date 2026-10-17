@@ -46,7 +46,7 @@ merged with tests and documentation.
 - [x] Edit past workouts (reuses the logger in edit mode; same idempotent save, original times kept)
 - [ ] Templates / routines ("Repeat workout" covers the common case today)
 - [x] Rest timer: auto-starts on each completed set, ±15s / skip, haptic at the end, default length in Profile
-- [ ] Rest-over notification while the app is in the background
+- [x] Rest-over notification while the app is in the background (local notification)
 - [ ] Progressive-overload suggestions
 
 ## Phase 5b: Friends
@@ -54,7 +54,7 @@ merged with tests and documentation.
 - [x] Friend profiles: streak, recent PRs, workouts (respecting "share workouts")
 - [x] Leaderboards: consistency (crowns a winner), strength per lift (ranking only)
 - [x] Privacy: non-friends see nothing (404); "PRs only" sharing (403 on workouts)
-- [ ] Push notifications for friend requests and friends' PRs
+- [x] Push notifications for friend requests and friends' PRs (Expo push service, ADR 0009)
 
 ## Phase 6: Offline-first sync
 - [ ] SQLite store on device, sync queue with retries, conflict handling

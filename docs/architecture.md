@@ -151,6 +151,27 @@ network.
   owner-id variants (`listForOwner`, `recentRecordsOf`), so there's no
   duplicated query logic. Leaderboards compute everyone in one SQL query.
 
+### Notifications
+
+```
+FriendService / WorkoutService ──publish──▶ domain event (RequestSent, RequestAccepted, WorkoutSaved)
+                                                │  after the transaction commits, on a virtual thread
+                                                ▼
+                                   NotificationService ──▶ preferences + device tokens
+                                                │
+                                                ▼
+                                   ExpoPushSender ──HTTPS──▶ Expo push service ──▶ APNs / FCM
+```
+
+- Features **publish events** and don't call notifications directly, so the
+  social and workout modules don't depend on the notification module.
+- `@TransactionalEventListener` + `@Async`: nobody is notified about something
+  that rolled back, and requests never wait on Expo. Send failures are logged
+  and never fail the request.
+- The **rest-over alert** is a local notification scheduled on the phone (no
+  server involved), kept in sync with the rest timer.
+  See [ADR 0009](adr/0009-push-notifications.md).
+
 ### Error handling
 
 All errors are returned as [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)

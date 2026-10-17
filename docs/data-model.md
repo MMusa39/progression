@@ -102,6 +102,14 @@ in their own columns. That gives the data one source of truth: editing an old
 set automatically corrects every chart and PR. If the queries ever become slow,
 a materialized summary table can be added without changing the API.
 
+### Push notifications (V5)
+
+- **`push_token`**: `token` (primary key), `user_id`, `platform`, `created_at`,
+  `last_seen_at`. The token is the key because a phone belongs to whoever
+  signed in on it last: registering an existing token reassigns it.
+  Tokens Expo reports as `DeviceNotRegistered` are deleted.
+- **`app_user`** gains `notify_friend_requests` and `notify_friend_prs` (default `true`).
+
 ### Friends (V4)
 
 - **`app_user`** gains `username` (unique, lowercase, `^[a-z0-9_.]{3,20}$`),

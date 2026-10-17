@@ -40,7 +40,8 @@ answer those questions for you.
 | Streaks | Consecutive weeks trained, counted in your own time zone. |
 | Friends | Add friends by @username or invite link, see each other's PRs and workouts (or share PRs only), and compare on a consistency leaderboard (with a winner) and per-lift strength rankings. |
 | Repeat & edit | Start a new workout from any past one with one tap, or fix mistakes in a saved workout. |
-| Rest timer | Starts automatically when you tick off a set; adjust ±15s or skip; buzzes when rest is over. Default length set in Profile. |
+| Rest timer | Starts automatically when you tick off a set; adjust ±15s or skip; buzzes when rest is over, with a notification if you've left the app. |
+| Notifications | Friend requests, accepted invites, and friends' new PRs, each switchable in Profile. |
 | Overload hints | Suggests when to add weight based on your recent performance. |
 | Offline-first | Gyms have bad signal; workouts are saved on the phone and synced when possible. |
 

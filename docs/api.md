@@ -152,6 +152,23 @@ Among you and your friends.
 | `GET` | `/leaderboards/strength/exercises` | Catalog lifts anyone in the group has logged (weighted only), most shared first. |
 | `GET` | `/leaderboards/strength?exerciseId=` | Best estimated 1RM per person on one lift (defaults to the most shared lift), with the set that produced it. A ranking with **no winner**. |
 
+### Notifications
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/me/push-tokens` | `{ "token": "ExponentPushToken[…]", "platform": "IOS" \| "ANDROID" }`. Registers this device (idempotent; a token moves to whoever registers it last). |
+| `DELETE` | `/me/push-tokens/{token}` | Stop sending to this device (the app calls it on sign-out). |
+| `PATCH` | `/me` | `notifyFriendRequests`, `notifyFriendPrs` toggle each kind of push. |
+
+Pushes are sent **after the triggering transaction commits**, asynchronously,
+through Expo's push service:
+
+| Event | Who is notified | Opens |
+| --- | --- | --- |
+| Friend request sent | The recipient | Friends tab |
+| Request accepted / invite used | The original requester / invite owner | That friend |
+| New workout with personal records (started < 48h ago, first save only) | All friends | That friend |
+
 ### Templates
 
 | Method | Path | Description |
