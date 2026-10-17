@@ -44,7 +44,13 @@ tokens in addition to Cognito tokens (see [Authentication](#authentication)).
   persisted to AsyncStorage on every change, so a crash, a dead battery, or no
   signal never loses a set. Finished workouts go through a persisted upload
   queue.
-- **Charts** for progression graphs, rendered natively for smooth scrolling.
+- **Charts** are custom SVG components (`react-native-svg`) built to the
+  project's dataviz rules: single-series line/column/bar charts, touch
+  scrubbing with a fixed readout, a table view behind every chart, and colors
+  validated for contrast in both themes (see
+  [ADR 0006](adr/0006-custom-svg-charts.md)).
+- **One time-range filter** (4W/3M/6M/1Y/All or custom "last N weeks/months")
+  scopes every chart on the Progress screens.
 
 ### Backend API (`backend/`)
 
@@ -55,7 +61,7 @@ rather than by technical layer:
 com.progression
 ├── exercise/      ExerciseController, ExerciseService, ExerciseRepository, Exercise
 ├── workout/       WorkoutController, WorkoutService, ...
-├── stats/         progression & personal-record queries
+├── stats/         analytics over the working_set view (JdbcClient + SQL)
 ├── user/          current-user resolution, preferences
 └── common/        error handling, security config, shared types
 ```

@@ -88,11 +88,35 @@ Responses: `200 OK` (updated) or `201 Created` (new), with the saved workout.
 
 ### Stats
 
+All statistics are computed on demand from completed, non-warm-up sets
+(the `working_set` view). Weights are returned in **kilograms**; the app
+converts them to the user's unit. Time ranges are expressed as a `from` instant
+(the app sends "N weeks/months ago at local midnight"); omit it for all time.
+
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/stats/exercises/{id}/progression?metric=E1RM&range=6M` | Time series for a chart. `metric`: `E1RM`, `TOP_SET`, `VOLUME`. `range`: `1M`, `3M`, `6M`, `1Y`, `ALL`. |
-| `GET` | `/stats/personal-records` | The user's current PRs per exercise. |
-| `GET` | `/stats/weekly-volume?weeks=12` | Working-set volume per muscle group per week. |
+| `GET` | `/stats/summary?from=&tz=&bucket=` | Overview for a range: totals, totals for the equally long **previous period** (for "+12% vs previous 4 weeks"), current **weekly streak**, per-week or per-month **buckets** (empty periods included), and working sets per **muscle group**. `tz` is the IANA time zone used for week/month boundaries (default `UTC`). `bucket`: `WEEK`, `MONTH`, or `AUTO` (default: weekly up to ~6 months, monthly beyond). |
+| `GET` | `/stats/exercises` | Every exercise the user has performed: sessions, last performed, all-time bests (estimated 1RM + date, heaviest weight, most reps), and the best e1RM of the last 8 sessions for a sparkline. |
+| `GET` | `/stats/exercises/{id}/progression?from=` | One point per session for a chart: best estimated 1RM, top set (weight + reps), volume, total and best reps, set count. |
+| `GET` | `/workouts/{id}/records` | Personal records set in that workout (`ESTIMATED_1RM`, `HEAVIEST_WEIGHT`, `SESSION_VOLUME`), compared with all workouts that **started before it**. A first-ever session of an exercise sets no records. |
+
+**Estimated one-rep max** uses the Epley formula, `weight × (1 + reps / 30)`,
+with a single rep counted as-is. It's defined once, as the SQL function
+`estimated_one_rep_max`, so every endpoint agrees.
+
+Example `GET /api/v1/stats/summary?from=2026-09-18T04:00:00Z&tz=America/New_York`:
+
+```json
+{
+  "from": "2026-09-18T04:00:00Z",
+  "bucket": "WEEK",
+  "totals": { "workouts": 12, "sets": 144, "reps": 1210, "volumeKg": 61840.5 },
+  "previousTotals": { "workouts": 10, "sets": 120, "reps": 1009, "volumeKg": 55237.45 },
+  "currentStreakWeeks": 7,
+  "buckets": [ { "start": "2026-09-14", "workouts": 2, "sets": 24, "volumeKg": 10210.0 }, "..." ],
+  "muscleGroups": [ { "muscleGroup": "BACK", "sets": 48 }, { "muscleGroup": "QUADS", "sets": 24 } ]
+}
+```
 
 ### Templates
 

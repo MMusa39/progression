@@ -65,6 +65,13 @@ cd backend && ./gradlew bootRun
 API on http://localhost:8080, Swagger UI at http://localhost:8080/swagger-ui.html.
 Full details in [backend/README.md](../backend/README.md).
 
+To fill the Progress charts with realistic data (16 weeks of a push/pull/legs
+program for the development account):
+
+```bash
+python3 backend/scripts/seed_dev_data.py          # --subject, --weeks, --seed are optional
+```
+
 ### Mobile
 
 ```bash
@@ -73,7 +80,9 @@ npm install
 npx expo start      # scan the QR code with your iPhone camera (Expo Go installed)
 ```
 
-Tap **Use development account** to sign in against the local API. To enable
+Tap **Use development account** to sign in against the local API.
+`npx expo start --web` also runs the app in a desktop browser, which is handy
+for quick visual checks (the local API allows CORS from localhost). To enable
 real sign-up, deploy Cognito ([infra/README.md](../infra/README.md)) and fill
 in `mobile/.env`. Full details in [mobile/README.md](../mobile/README.md).
 

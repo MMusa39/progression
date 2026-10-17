@@ -102,6 +102,20 @@ in their own columns. That gives the data one source of truth: editing an old
 set automatically corrects every chart and PR. If the queries ever become slow,
 a materialized summary table can be added without changing the API.
 
+### Analytics building blocks (V3)
+
+- **`estimated_one_rep_max(weight_kg, reps)`**: an immutable SQL function
+  implementing the Epley formula (a single rep is returned as-is). Defining it
+  once in the database guarantees that charts, records and summaries all agree.
+- **`working_set` view**: completed, non-warm-up sets with at least one rep,
+  joined to their workout (user, start time) and exercise, plus `volume_kg`
+  and `e1rm_kg`. Every stats query reads from this view. PostgreSQL inlines simple
+  views, so the underlying indexes are still used.
+
+Weekly and monthly buckets are computed with
+`date_trunc('week', started_at AT TIME ZONE :tz)`, so a workout on Sunday
+night counts toward the week the *user* experienced, not the UTC week.
+
 ### Indexes
 
 | Index | Supports |
