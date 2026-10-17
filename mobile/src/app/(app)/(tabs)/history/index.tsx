@@ -3,14 +3,13 @@ import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, Text } from '@/components/ui';
-import { useWeightUnit, useWorkoutHistory } from '@/features/api/queries';
+import { useWorkoutHistory } from '@/features/api/queries';
 import { WorkoutSummaryCard } from '@/features/workout/components/WorkoutSummaryCard';
 import { useStartWorkout } from '@/features/workout/useStartWorkout';
 import { space } from '@/theme/tokens';
 
 export default function HistoryScreen() {
   const history = useWorkoutHistory();
-  const unit = useWeightUnit();
   const { startEmpty } = useStartWorkout();
   const workouts = history.data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -25,7 +24,7 @@ export default function HistoryScreen() {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}
       renderItem={({ item }) => (
-        <WorkoutSummaryCard workout={item} unit={unit} onPress={() => router.push(`/history/${item.id}`)} />
+        <WorkoutSummaryCard workout={item} onPress={() => router.push(`/history/${item.id}`)} />
       )}
       onEndReached={() => history.hasNextPage && !history.isFetchingNextPage && history.fetchNextPage()}
       onEndReachedThreshold={0.5}

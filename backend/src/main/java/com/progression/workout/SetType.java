@@ -1,8 +1,8 @@
 package com.progression.workout;
 
-/** The kind of set. Only working-type sets count toward volume and personal records. */
+/** The kind of set. Warm-ups are excluded from set counts, charts and personal records. */
 public enum SetType {
-	/** Lighter preparatory set. Excluded from PRs and volume. */
+	/** Lighter preparatory set. Excluded from statistics. */
 	WARMUP,
 	/** A regular set at working weight. */
 	WORKING,

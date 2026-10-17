@@ -1,16 +1,16 @@
 /**
- * One lift's progress over the selected range: a headline number with its
- * change, a line chart (estimated 1RM, top set, volume or reps), all-time
- * personal records, and every session as a table.
+ * One lift's progress over the selected range: where you are now and how much
+ * it moved, a chart of each session, your all-time records, and the sessions
+ * themselves.
  */
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { DataTable, LineChart } from '@/components/charts';
+import { LineChart } from '@/components/charts';
 import { Button, Card, EmptyState, Icon, SegmentedControl, Text } from '@/components/ui';
 import { useExerciseProgression, useExerciseStats, useWeightUnit } from '@/features/api/queries';
-import type { ExerciseStats, WeightUnit } from '@/features/api/types';
+import type { ExerciseStats, ProgressionPoint, WeightUnit } from '@/features/api/types';
 import { axisDate, shortDate } from '@/features/progress/dates';
 import { Delta } from '@/features/progress/Delta';
 import { change, defaultMetric, metrics, type MetricKey } from '@/features/progress/metrics';
@@ -20,12 +20,15 @@ import { formatWeight, kgTo, muscleGroupLabel, unitLabel } from '@/features/work
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
+const SESSIONS_PREVIEW = 5;
+
 export default function ExerciseProgressScreen() {
   const { exerciseId } = useLocalSearchParams<{ exerciseId: string }>();
   const range = useProgressRange();
   const from = useMemo(() => rangeStart(range), [range]);
   const progression = useExerciseProgression(exerciseId, from);
-  const allTime = useExerciseStats().data?.find((s) => s.exerciseId === exerciseId);
+  // All-time records come from the unscoped list (records are "best ever", not "best this month").
+  const allTime = useExerciseStats(null).data?.find((s) => s.exerciseId === exerciseId);
   const unit = useWeightUnit();
   const [chosenMetric, setChosenMetric] = useState<MetricKey | null>(null);
 
@@ -37,7 +40,7 @@ export default function ExerciseProgressScreen() {
   const data = progression.data;
   // Bodyweight movements (or lifts only ever logged at 0 weight) progress in reps only.
   const bodyweight = defaultMetric(data.equipment, data) === 'reps' || allTime?.heaviestWeightKg === 0;
-  const available: MetricKey[] = bodyweight ? ['reps'] : ['e1rm', 'topSet', 'volume', 'reps'];
+  const available: MetricKey[] = bodyweight ? ['reps'] : ['e1rm', 'topSet'];
   const metricKey = chosenMetric && available.includes(chosenMetric) ? chosenMetric : available[0];
   const metric = metrics[metricKey];
 
@@ -55,22 +58,13 @@ export default function ExerciseProgressScreen() {
 
       <RangeFilter />
 
-      {available.length > 1 && (
-        <SegmentedControl<MetricKey>
-          accessibilityLabel="Metric"
-          options={available.map((key) => ({ value: key, label: metrics[key].label }))}
-          value={metricKey}
-          onChange={setChosenMetric}
-        />
-      )}
-
       <View style={[styles.sections, progression.isPlaceholderData && { opacity: 0.5 }]}>
         {latest ? (
           <>
             {/* Hero: the single number this screen leads with. */}
             <View style={styles.hero}>
               <Text variant="caption" color="textSecondary">
-                {metric.title.toUpperCase()} · LATEST
+                {metric.title.toUpperCase()}
               </Text>
               <Text style={styles.heroValue} accessibilityRole="header">
                 {format(latest.y)}
@@ -90,7 +84,14 @@ export default function ExerciseProgressScreen() {
             </View>
 
             <Card>
-              <Text variant="headline">{metric.title}</Text>
+              {available.length > 1 && (
+                <SegmentedControl<MetricKey>
+                  accessibilityLabel="Metric"
+                  options={available.map((key) => ({ value: key, label: metrics[key].label }))}
+                  value={metricKey}
+                  onChange={setChosenMetric}
+                />
+              )}
               <Text variant="footnote" color="textSecondary">
                 {metric.description}
               </Text>
@@ -99,24 +100,13 @@ export default function ExerciseProgressScreen() {
                 formatValue={format}
                 formatAxis={(v) => (metricKey === 'reps' ? String(Math.round(v)) : formatWeight(Math.round(v)))}
                 formatX={axisDate}
-                formatDetail={(i) => {
-                  const p = data.points[i];
-                  return p.topSetWeightKg > 0 ? `${formatWeight(Math.round(kgTo(unit, p.topSetWeightKg) * 10) / 10)} × ${p.topSetReps}` : `${p.bestReps} reps`;
-                }}
+                formatDetail={(i) => topSet(data.points[i], unit)}
+                restingReadout={false}
                 accessibilityLabel={`${metric.title}, ${rangeLabel(range).toLowerCase()}: ${points.length} sessions, from ${format(points[0].y)} to ${format(latest.y)}.`}
               />
-              <DataTable
-                columns={['Date', metric.label, 'Top set']}
-                rows={[...data.points].reverse().map((p) => ({
-                  key: p.workoutId,
-                  cells: [
-                    shortDate(p.performedAt),
-                    format(metric.value(p, unit)),
-                    p.topSetWeightKg > 0 ? `${formatWeight(Math.round(kgTo(unit, p.topSetWeightKg) * 10) / 10)} × ${p.topSetReps}` : `${p.bestReps} reps`,
-                  ],
-                }))}
-              />
             </Card>
+
+            <Sessions points={data.points} unit={unit} />
           </>
         ) : (
           <Card>
@@ -135,26 +125,78 @@ export default function ExerciseProgressScreen() {
       </View>
 
       {allTime && <PersonalRecords stats={allTime} unit={unit} bodyweight={bodyweight} />}
-
-      <Button title="View workout history" variant="ghost" icon="time-outline" onPress={() => router.push('/history')} />
     </ScrollView>
+  );
+}
+
+/** "185 × 8" (heaviest set of the session), or "12 reps" for bodyweight work. */
+function topSet(p: ProgressionPoint, unit: WeightUnit): string {
+  return p.topSetWeightKg > 0
+    ? `${formatWeight(Math.round(kgTo(unit, p.topSetWeightKg) * 10) / 10)} × ${p.topSetReps}`
+    : `${p.bestReps} reps`;
+}
+
+/**
+ * Every session in the range, newest first: date, top set, and set count.
+ * This is also the chart's table view: every plotted session is readable here
+ * without touching the chart.
+ */
+function Sessions({ points, unit }: { points: ProgressionPoint[]; unit: WeightUnit }) {
+  const { colors } = useTheme();
+  const [showAll, setShowAll] = useState(false);
+  const newestFirst = [...points].reverse();
+  const visible = showAll ? newestFirst : newestFirst.slice(0, SESSIONS_PREVIEW);
+
+  return (
+    <View style={{ gap: space.sm }}>
+      <Text variant="title2">Sessions</Text>
+      <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {visible.map((p, i) => (
+          <Pressable
+            key={p.workoutId}
+            onPress={() => router.push(`/history/${p.workoutId}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`${shortDate(p.performedAt)}: top set ${topSet(p, unit)}, ${p.setCount} sets`}
+            style={({ pressed }) => [
+              styles.sessionRow,
+              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+              pressed && { backgroundColor: colors.surfaceRaised },
+            ]}>
+            <Text variant="subhead" color="textSecondary" style={{ flex: 1 }}>
+              {shortDate(p.performedAt)}
+            </Text>
+            <Text variant="number">{topSet(p, unit)}</Text>
+            <Text variant="footnote" color="textTertiary" style={styles.setCount}>
+              {p.setCount} set{p.setCount === 1 ? '' : 's'}
+            </Text>
+            <Icon name="chevron-forward" size={14} color="textTertiary" />
+          </Pressable>
+        ))}
+        {newestFirst.length > SESSIONS_PREVIEW && (
+          <Pressable
+            onPress={() => setShowAll((s) => !s)}
+            accessibilityRole="button"
+            style={[styles.sessionRow, styles.showAll, { borderTopColor: colors.border }]}>
+            <Text variant="footnote" weight="600" color="accentText">
+              {showAll ? 'Show fewer' : `Show all ${newestFirst.length}`}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
   );
 }
 
 function PersonalRecords({ stats, unit, bodyweight }: { stats: ExerciseStats; unit: WeightUnit; bodyweight: boolean }) {
   const records = bodyweight
-    ? [{ label: 'Most reps in a set', value: `${stats.bestReps} reps`, note: null }]
+    ? [{ label: 'Most reps in a set', value: `${stats.bestReps}`, note: null }]
     : [
-        { label: 'Best est. 1RM', value: `${Math.round(kgTo(unit, stats.bestE1rmKg))} ${unitLabel(unit)}`, note: shortDate(stats.bestE1rmAt) },
         { label: 'Heaviest weight', value: `${formatWeight(Math.round(kgTo(unit, stats.heaviestWeightKg) * 10) / 10)} ${unitLabel(unit)}`, note: null },
-        { label: 'Most reps in a set', value: `${stats.bestReps}`, note: null },
+        { label: 'Best est. 1RM', value: `${Math.round(kgTo(unit, stats.bestE1rmKg))} ${unitLabel(unit)}`, note: shortDate(stats.bestE1rmAt) },
       ];
   return (
     <View style={{ gap: space.sm }}>
-      <Text variant="title2">Personal records</Text>
-      <Text variant="footnote" color="textSecondary">
-        All time · {stats.sessions} session{stats.sessions === 1 ? '' : 's'}
-      </Text>
+      <Text variant="title2">All-time records</Text>
       <View style={styles.records}>
         {records.map((r) => (
           <RecordTile key={r.label} {...r} />
@@ -188,6 +230,10 @@ const styles = StyleSheet.create({
   hero: { gap: space.xs },
   // Hero figure: 48pt, the same system sans as the rest of the UI, proportional digits.
   heroValue: { fontSize: 48, lineHeight: 54, fontWeight: '800' },
+  panel: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  sessionRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md },
+  setCount: { width: 44, textAlign: 'right' },
+  showAll: { justifyContent: 'center', borderTopWidth: StyleSheet.hairlineWidth },
   records: { flexDirection: 'row', gap: space.sm },
   recordTile: { flex: 1, padding: space.md, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, gap: 2 },
 });

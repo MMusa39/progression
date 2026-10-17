@@ -209,7 +209,6 @@ class WorkoutApiTest extends IntegrationTest {
 				.bodyJson()
 				.satisfies(body -> {
 					assertThat(body).extractingPath("$.items[0].setCount").isEqualTo(2);
-					assertThat(body).extractingPath("$.items[0].totalVolumeKg").isEqualTo(900.0);
 					assertThat(body).extractingPath("$.items[0].exerciseNames").asArray().containsExactly("Bench Press");
 					assertThat(body).extractingPath("$.nextCursor").isNull();
 				});

@@ -2,12 +2,12 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/ui';
-import type { PersonalRecord, WeightUnit } from '@/features/api/types';
+import type { PersonalRecord, RecentRecord, WeightUnit } from '@/features/api/types';
 import { formatWeight, kgTo, unitLabel } from '@/features/workout/format';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
-export function describeRecord(record: PersonalRecord, unit: WeightUnit): { title: string; detail: string } {
+export function describeRecord(record: PersonalRecord | RecentRecord, unit: WeightUnit): { title: string; detail: string } {
   const weight = (kg: number) => `${formatWeight(Math.round(kgTo(unit, kg) * 10) / 10)} ${unitLabel(unit)}`;
   const set = record.weight != null && record.reps != null && record.weightUnit
     ? `${formatWeight(record.weight)} ${unitLabel(record.weightUnit)} × ${record.reps}`
@@ -20,11 +20,6 @@ export function describeRecord(record: PersonalRecord, unit: WeightUnit): { titl
       };
     case 'HEAVIEST_WEIGHT':
       return { title: `Heaviest weight: ${set ?? weight(record.valueKg)}`, detail: `previous best ${weight(record.previousKg)}` };
-    case 'SESSION_VOLUME':
-      return {
-        title: `Session volume: ${Math.round(kgTo(unit, record.valueKg)).toLocaleString()} ${unitLabel(unit)}`,
-        detail: `previous best ${Math.round(kgTo(unit, record.previousKg)).toLocaleString()} ${unitLabel(unit)}`,
-      };
   }
 }
 

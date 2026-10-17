@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Icon, Text } from '@/components/ui';
-import { useMe, useWeightUnit, useWorkoutHistory } from '@/features/api/queries';
+import { useMe, useWorkoutHistory } from '@/features/api/queries';
 import { useActiveWorkout, workoutProgress } from '@/features/workout/activeWorkoutStore';
 import { ElapsedTimer } from '@/features/workout/components/ElapsedTimer';
 import { WorkoutSummaryCard } from '@/features/workout/components/WorkoutSummaryCard';
@@ -22,7 +22,6 @@ export default function WorkoutHomeScreen() {
   const { pending, syncing, flush } = useWorkoutSync();
   const history = useWorkoutHistory();
   const me = useMe();
-  const unit = useWeightUnit();
   const { startEmpty, repeat } = useStartWorkout();
 
   const recent = history.data?.pages[0]?.items.slice(0, 3) ?? [];
@@ -85,7 +84,6 @@ export default function WorkoutHomeScreen() {
             <WorkoutSummaryCard
               key={workout.id}
               workout={workout}
-              unit={unit}
               onPress={() => router.push(`/history/${workout.id}`)}
               action={<Button title="Repeat" icon="repeat" size="sm" variant="secondary" fullWidth={false} onPress={() => repeat(workout.id)} />}
             />

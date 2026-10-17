@@ -60,7 +60,6 @@ class StatsApiTest extends IntegrationTest {
 		assertThat(points.get(0).get("bestE1rmKg").asDouble()).isCloseTo(116.67, within(0.01));
 		assertThat(points.get(0).get("topSetWeightKg").asDouble()).isEqualTo(100.0);
 		assertThat(points.get(0).get("topSetReps").asInt()).isEqualTo(5);
-		assertThat(points.get(0).get("volumeKg").asDouble()).isEqualTo(900.0);
 		assertThat(points.get(0).get("setCount").asInt()).isEqualTo(2);
 		// A single rep is already a 1RM.
 		assertThat(points.get(2).get("bestE1rmKg").asDouble()).isEqualTo(110.0);
@@ -96,12 +95,12 @@ class StatsApiTest extends IntegrationTest {
 	void beatingEarlierWorkoutsSetsRecords() throws Exception {
 		log(daysAgo(14), entry(bench, kg(100, 5), kg(100, 5)));
 		WorkoutRequest.SetEntry heavySingle = kg(110, 1);
-		UUID latest = log(daysAgo(7), entry(bench, kg(100, 8), heavySingle, kg(100, 5))); // volume 1,410 > 1,000
+		UUID latest = log(daysAgo(7), entry(bench, kg(100, 8), heavySingle));
 
 		JsonNode records = getJson("/api/v1/workouts/" + latest + "/records");
 
 		assertThat(records).extracting(r -> r.get("type").asString())
-				.containsExactlyInAnyOrder("ESTIMATED_1RM", "HEAVIEST_WEIGHT", "SESSION_VOLUME");
+				.containsExactlyInAnyOrder("ESTIMATED_1RM", "HEAVIEST_WEIGHT");
 		JsonNode heaviest = find(records, "HEAVIEST_WEIGHT");
 		assertThat(heaviest.get("setId").asString()).isEqualTo(heavySingle.id().toString());
 		assertThat(heaviest.get("valueKg").asDouble()).isEqualTo(110.0);
@@ -134,45 +133,31 @@ class StatsApiTest extends IntegrationTest {
 				.hasStatus(HttpStatus.NOT_FOUND);
 	}
 
-	// ---------------------------------------------------------------- summary
+	// ---------------------------------------------------------------- summary (consistency)
 
 	@Test
-	void summaryTotalsBucketsAndMuscleGroups() throws Exception {
+	void summaryCountsWorkoutsAgainstThePreviousPeriod() throws Exception {
 		log(daysAgo(20), entry(bench, kg(100, 5)));
-		log(daysAgo(10), entry(bench, kg(100, 5), kg(100, 5)), entry(squat, kg(140, 5)));
-		log(daysAgo(45), entry(squat, kg(120, 5))); // previous period
+		log(daysAgo(10), entry(bench, kg(100, 5)), entry(squat, kg(140, 5)));
+		log(daysAgo(45), entry(squat, kg(120, 5))); // previous 28-day period
 
 		JsonNode summary = getJson("/api/v1/stats/summary?tz=UTC&from=" + daysAgo(28));
 
-		assertThat(summary.get("bucket").asString()).isEqualTo("WEEK");
-		assertThat(summary.get("totals").get("workouts").asInt()).isEqualTo(2);
-		assertThat(summary.get("totals").get("sets").asInt()).isEqualTo(4);
-		assertThat(summary.get("totals").get("volumeKg").asDouble()).isEqualTo(2200.0);
-		assertThat(summary.get("previousTotals").get("workouts").asInt()).isEqualTo(1);
-
-		JsonNode buckets = summary.get("buckets");
-		assertThat(buckets.size()).isBetween(5, 6); // every week in the range, including empty ones
-		int bucketWorkouts = 0;
-		for (JsonNode bucket : buckets) {
-			bucketWorkouts += bucket.get("workouts").asInt();
-			assertThat(LocalDate.parse(bucket.get("start").asString()).getDayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
-		}
-		assertThat(bucketWorkouts).isEqualTo(2);
-
-		assertThat(summary.get("muscleGroups").get(0).get("muscleGroup").asString()).isEqualTo("CHEST");
-		assertThat(summary.get("muscleGroups").get(0).get("sets").asInt()).isEqualTo(3);
+		assertThat(summary.get("workouts").asInt()).isEqualTo(2);
+		assertThat(summary.get("previousWorkouts").asInt()).isEqualTo(1);
 	}
 
 	@Test
-	void weeksFollowTheUsersTimeZone() throws Exception {
-		// 03:00 UTC on a Monday is still Sunday evening in New York.
-		LocalDate monday = LocalDate.now(ZoneOffset.UTC).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(1);
-		Instant mondayEarlyUtc = monday.atTime(3, 0).toInstant(ZoneOffset.UTC);
-		log(mondayEarlyUtc, entry(bench, kg(100, 5)));
-		String from = mondayEarlyUtc.minus(20, ChronoUnit.DAYS).toString();
+	void streakCountsConsecutiveWeeksInTheUsersTimeZone() throws Exception {
+		// 03:00 UTC on Monday is still Sunday evening in New York: a different week there.
+		LocalDate thisMonday = LocalDate.now(ZoneOffset.UTC).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+		log(thisMonday.minusWeeks(1).atTime(3, 0).toInstant(ZoneOffset.UTC), entry(bench, kg(100, 5)));
+		log(thisMonday.minusWeeks(2).atTime(12, 0).toInstant(ZoneOffset.UTC), entry(bench, kg(100, 5)));
 
-		assertThat(weekWithWorkout("/api/v1/stats/summary?tz=UTC&from=" + from)).isEqualTo(monday);
-		assertThat(weekWithWorkout("/api/v1/stats/summary?tz=America/New_York&from=" + from)).isEqualTo(monday.minusWeeks(1));
+		// UTC: workouts in the last two weeks → streak 2 (this week isn't over yet).
+		assertThat(getJson("/api/v1/stats/summary?tz=UTC").get("currentStreakWeeks").asInt()).isEqualTo(2);
+		// New York: both workouts fall in the week before last, last week is empty → no streak.
+		assertThat(getJson("/api/v1/stats/summary?tz=America/New_York").get("currentStreakWeeks").asInt()).isZero();
 	}
 
 	@Test
@@ -183,18 +168,8 @@ class StatsApiTest extends IntegrationTest {
 		JsonNode summary = getJson("/api/v1/stats/summary?tz=UTC");
 
 		assertThat(summary.get("from").isNull()).isTrue();
-		assertThat(summary.get("previousTotals").isNull()).isTrue();
-		assertThat(summary.get("bucket").asString()).isEqualTo("MONTH");
-		assertThat(summary.get("totals").get("workouts").asInt()).isEqualTo(2);
-	}
-
-	@Test
-	void summaryForANewUserIsEmptyButValid() throws Exception {
-		JsonNode summary = getJson("/api/v1/stats/summary?tz=UTC");
-
-		assertThat(summary.get("totals").get("workouts").asInt()).isZero();
-		assertThat(summary.get("currentStreakWeeks").asInt()).isZero();
-		assertThat(summary.get("buckets")).hasSize(1);
+		assertThat(summary.get("previousWorkouts").isNull()).isTrue();
+		assertThat(summary.get("workouts").asInt()).isEqualTo(2);
 	}
 
 	@Test
@@ -204,24 +179,65 @@ class StatsApiTest extends IntegrationTest {
 				.hasStatus(HttpStatus.BAD_REQUEST);
 	}
 
-	// ---------------------------------------------------------------- exercise stats
+	// ---------------------------------------------------------------- exercise stats (strength)
 
 	@Test
-	void exerciseStatsListRecordsAndRecentTrend() throws Exception {
+	void exerciseStatsShowMovementWithinTheRangeAndAllTimeBests() throws Exception {
+		log(daysAgo(60), entry(bench, kg(110, 5)));   // all-time best, outside the range
 		log(daysAgo(21), entry(bench, kg(100, 5)));
 		log(daysAgo(14), entry(bench, kg(105, 5)), entry(squat, kg(140, 3)));
 		log(daysAgo(7), entry(bench, kg(102.5, 5)));
 
-		JsonNode list = getJson("/api/v1/stats/exercises");
+		JsonNode list = getJson("/api/v1/stats/exercises?from=" + daysAgo(30));
 
 		assertThat(list).hasSize(2);
 		JsonNode benchStats = list.get(0); // most recently performed first
 		assertThat(benchStats.get("exerciseName").asString()).isEqualTo("Bench Press");
-		assertThat(benchStats.get("sessions").asInt()).isEqualTo(3);
-		assertThat(benchStats.get("heaviestWeightKg").asDouble()).isEqualTo(105.0);
-		assertThat(benchStats.get("bestE1rmKg").asDouble()).isCloseTo(122.5, within(0.01));
-		assertThat(benchStats.get("recentBestE1rmKg")).extracting(JsonNode::asDouble)
-				.containsExactly(116.67, 122.5, 119.58); // oldest → newest
+		assertThat(benchStats.get("sessions").asInt()).isEqualTo(3); // in range only
+		assertThat(benchStats.get("rangeBestE1rmKg")).extracting(JsonNode::asDouble)
+				.containsExactly(116.67, 122.5, 119.58); // oldest → newest, in range only
+		assertThat(benchStats.get("bestE1rmKg").asDouble()).isCloseTo(128.33, within(0.01)); // all time
+		assertThat(benchStats.get("heaviestWeightKg").asDouble()).isEqualTo(110.0);
+	}
+
+	@Test
+	void exercisesNotPerformedInTheRangeAreLeftOut() throws Exception {
+		log(daysAgo(60), entry(squat, kg(140, 5)));
+		log(daysAgo(3), entry(bench, kg(100, 5)));
+
+		JsonNode list = getJson("/api/v1/stats/exercises?from=" + daysAgo(30));
+
+		assertThat(list).extracting(e -> e.get("exerciseName").asString()).containsExactly("Bench Press");
+	}
+
+	// ---------------------------------------------------------------- recent records
+
+	@Test
+	void recentRecordsListPrsSetInTheRangeNewestFirst() throws Exception {
+		log(daysAgo(40), entry(bench, kg(100, 5)));             // baseline
+		log(daysAgo(20), entry(bench, kg(105, 5)));             // e1RM + heaviest PR
+		log(daysAgo(10), entry(bench, kg(100, 10)));            // e1RM PR only (133.3 > 122.5)
+		log(daysAgo(5), entry(bench, kg(100, 5)));              // nothing new
+		log(daysAgo(3), entry(squat, kg(200, 1)));              // first squat session: not a PR
+
+		JsonNode records = getJson("/api/v1/stats/records?from=" + daysAgo(30));
+
+		assertThat(records).extracting(r -> r.get("type").asString() + "@" + r.get("reps").asInt())
+				.containsExactly("ESTIMATED_1RM@10", "ESTIMATED_1RM@5", "HEAVIEST_WEIGHT@5");
+		JsonNode heaviest = records.get(2);
+		assertThat(heaviest.get("valueKg").asDouble()).isEqualTo(105.0);
+		assertThat(heaviest.get("previousKg").asDouble()).isEqualTo(100.0);
+		assertThat(heaviest.get("weight").asDouble()).isEqualTo(105.0);
+		assertThat(heaviest.get("weightUnit").asString()).isEqualTo("KG");
+	}
+
+	@Test
+	void recentRecordsRespectTheRange() throws Exception {
+		log(daysAgo(60), entry(bench, kg(100, 5)));
+		log(daysAgo(40), entry(bench, kg(110, 5))); // PR, but before the range
+
+		assertThat(getJson("/api/v1/stats/records?from=" + daysAgo(30))).isEmpty();
+		assertThat(getJson("/api/v1/stats/records")).hasSize(2); // all time: e1RM + heaviest
 	}
 
 	// ---------------------------------------------------------------- helpers

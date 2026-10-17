@@ -95,7 +95,8 @@ Each feature has the same layers:
 | **Consistent errors** | `common/error/ApiExceptionHandler` | Every error is `application/problem+json`, and validation errors list every bad field. |
 | **Virtual threads** | `spring.threads.virtual.enabled` | Each request runs on a lightweight Java virtual thread. |
 | **Analytics in SQL** | `stats/StatsRepository`, `V3__stats_view_and_e1rm.sql` | Reports use `JdbcClient` and plain SQL (grouping, `array_agg`, window functions) over a `working_set` view, not JPA. The e1RM formula is one SQL function, so every number agrees. |
-| **Time-zone-aware bucketing** | `StatsRepository#buckets` | `date_trunc('week', started_at AT TIME ZONE :tz)`: weeks follow the user's calendar. Empty weeks are zero-filled in Java so charts don't compress time. |
+| **Time-zone-aware weeks** | `StatsRepository#activeWeeks` | `date_trunc('week', started_at AT TIME ZONE :tz)`: the streak follows the user's calendar, not UTC. |
+| **Window functions** | `StatsRepository#recentRecords` | Each session is compared with `max() OVER (… ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)`, the best of all earlier sessions, to find PRs in one query. |
 | **Derived, never stored** | `stats/` | PRs, streaks and charts are computed from raw sets on request, so editing an old workout corrects everything. |
 | **Testable time** | `common/TimeConfig` | Services take a `Clock` bean instead of calling `Instant.now()`. |
 
@@ -111,9 +112,9 @@ Each feature has the same layers:
   contract together. Each test signs in as a fresh random user, so tests are
   isolated without truncating tables.
 - **Unit tests** (`WorkoutCursorTest`, `WeightUnitTest`, `CognitoTokenValidatorTest`, `StatsServiceTest`) cover pure logic:
-  the claim rules that reject Cognito ID tokens and tokens issued to other app clients, plus streak and
-  bucket-filling date logic.
+  the claim rules that reject Cognito ID tokens and tokens issued to other app clients, plus the
+  weekly-streak date logic.
 - **`StatsApiTest`** checks the analytics SQL against real PostgreSQL: Epley e1RM, warm-up exclusion,
-  pound conversion, PRs only against *earlier* workouts, previous-period totals, and time-zone week boundaries.
+  pound conversion, PRs only against *earlier* workouts, range-scoped lift stats, and time-zone week boundaries.
 
 Test reports: `build/reports/tests/test/index.html`.

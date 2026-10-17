@@ -78,7 +78,6 @@ export type WorkoutSummary = {
   endedAt: string | null;
   exerciseNames: string[];
   setCount: number;
-  totalVolumeKg: number;
 };
 
 export type Page<T> = { items: T[]; nextCursor: string | null };
@@ -100,20 +99,15 @@ export type ProblemDetail = {
 
 // ------------------------------------------------------------------ stats
 
-export type Bucket = 'WEEK' | 'MONTH';
-
-export type StatsTotals = { workouts: number; sets: number; reps: number; volumeKg: number };
-
+/** Consistency over a range: workouts logged (and in the previous period) plus the weekly streak. */
 export type StatsSummary = {
   from: string | null;
-  bucket: Bucket;
-  totals: StatsTotals;
-  previousTotals: StatsTotals | null;
+  workouts: number;
+  previousWorkouts: number | null;
   currentStreakWeeks: number;
-  buckets: { start: string; workouts: number; sets: number; volumeKg: number }[];
-  muscleGroups: { muscleGroup: MuscleGroup; sets: number }[];
 };
 
+/** An exercise performed in the range: per-session bests in the range, plus all-time records. */
 export type ExerciseStats = {
   exerciseId: string;
   exerciseName: string;
@@ -121,11 +115,12 @@ export type ExerciseStats = {
   equipment: Equipment;
   sessions: number;
   lastPerformedAt: string;
+  rangeBestE1rmKg: number[];
+  rangeBestReps: number[];
   bestE1rmKg: number;
   bestE1rmAt: string;
   heaviestWeightKg: number;
   bestReps: number;
-  recentBestE1rmKg: number[];
 };
 
 export type ProgressionPoint = {
@@ -134,8 +129,6 @@ export type ProgressionPoint = {
   bestE1rmKg: number;
   topSetWeightKg: number;
   topSetReps: number;
-  volumeKg: number;
-  totalReps: number;
   bestReps: number;
   setCount: number;
 };
@@ -148,8 +141,9 @@ export type ExerciseProgression = {
   points: ProgressionPoint[];
 };
 
-export type RecordType = 'ESTIMATED_1RM' | 'HEAVIEST_WEIGHT' | 'SESSION_VOLUME';
+export type RecordType = 'ESTIMATED_1RM' | 'HEAVIEST_WEIGHT';
 
+/** A record set in a specific workout (from /workouts/{id}/records). */
 export type PersonalRecord = {
   exerciseId: string;
   exerciseName: string;
@@ -160,4 +154,18 @@ export type PersonalRecord = {
   weight: number | null;
   weightUnit: WeightUnit | null;
   reps: number | null;
+};
+
+/** A record set at some point in a range (from /stats/records). */
+export type RecentRecord = {
+  exerciseId: string;
+  exerciseName: string;
+  workoutId: string;
+  achievedAt: string;
+  type: RecordType;
+  valueKg: number;
+  previousKg: number;
+  weight: number;
+  weightUnit: WeightUnit;
+  reps: number;
 };

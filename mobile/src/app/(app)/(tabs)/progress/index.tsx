@@ -1,259 +1,271 @@
 /**
- * Progress tab: how training is going over the selected time range.
+ * Progress tab: the three questions a lifter actually asks.
  *
- *   range filter → headline numbers → streak → volume/workouts/sets chart
- *   → muscle-group split → every lift with its all-time best and trend
+ *   1. Am I showing up?        → workouts in the range + weekly streak
+ *   2. Did I set any records?  → recent PRs
+ *   3. Is each lift improving? → every lift trained in the range, with how much it moved
+ *
+ * One time-range control at the top scopes everything below it.
  */
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
-import { ColumnChart, DataTable, HorizontalBars, Sparkline, formatCompact } from '@/components/charts';
-import { Button, Card, EmptyState, Icon, SegmentedControl, Text } from '@/components/ui';
-import { useExerciseStats, useStatsSummary, useWeightUnit } from '@/features/api/queries';
-import type { ExerciseStats, StatsSummary, StatsTotals, WeightUnit } from '@/features/api/types';
-import { axisDate, parseLocalDate, shortDate } from '@/features/progress/dates';
+import { Sparkline } from '@/components/charts';
+import { Button, EmptyState, Icon, Text } from '@/components/ui';
+import { useExerciseStats, useRecentRecords, useStatsSummary, useWeightUnit } from '@/features/api/queries';
+import type { ExerciseStats, RecentRecord, StatsSummary, WeightUnit } from '@/features/api/types';
+import { shortDate } from '@/features/progress/dates';
+import { Delta } from '@/features/progress/Delta';
 import { KpiTile } from '@/features/progress/KpiTile';
 import { RangeFilter } from '@/features/progress/RangeFilter';
 import { deviceTimeZone, previousPeriodLabel, rangeLabel, rangeStart, useProgressRange } from '@/features/progress/range';
-import { kgTo, muscleGroupLabel, unitLabel } from '@/features/workout/format';
+import { formatWeight, kgTo, unitLabel } from '@/features/workout/format';
 import { useStartWorkout } from '@/features/workout/useStartWorkout';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
-type TrendMetric = 'volume' | 'workouts' | 'sets';
+const RECORDS_PREVIEW = 4;
 
 export default function ProgressScreen() {
   const range = useProgressRange();
   const from = useMemo(() => rangeStart(range), [range]);
   const summary = useStatsSummary(from, deviceTimeZone());
-  const exerciseStats = useExerciseStats();
+  const lifts = useExerciseStats(from);
+  const records = useRecentRecords(from);
+  const allTime = useStatsSummary(null, deviceTimeZone());
   const unit = useWeightUnit();
   const { startEmpty } = useStartWorkout();
 
-  if (summary.isPending || exerciseStats.isPending) {
+  if (summary.isPending || lifts.isPending || records.isPending || allTime.isPending) {
     return <ActivityIndicator style={{ flex: 1 }} />;
   }
-  if (summary.isError) {
+  if (summary.isError || lifts.isError) {
     return (
       <EmptyState
         icon="cloud-offline-outline"
         title="Couldn't load your progress"
-        message={summary.error.message}
-        action={<Button title="Try again" variant="secondary" fullWidth={false} onPress={() => summary.refetch()} />}
+        message={(summary.error ?? lifts.error)?.message ?? ''}
+        action={<Button title="Try again" variant="secondary" fullWidth={false} onPress={() => { summary.refetch(); lifts.refetch(); }} />}
       />
     );
   }
 
-  const neverTrained = (exerciseStats.data?.length ?? 0) === 0;
-  const refreshing = summary.isRefetching && !summary.isPlaceholderData;
+  if ((allTime.data?.workouts ?? 0) === 0) {
+    return (
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+        <EmptyState
+          icon="trending-up"
+          title="Your progress starts here"
+          message="Finish a workout and this screen shows how each lift is improving, your personal records, and your weekly streak."
+          action={<Button title="Start a workout" icon="add" fullWidth={false} onPress={startEmpty} />}
+        />
+      </ScrollView>
+    );
+  }
+
+  const loadingNewRange = summary.isPlaceholderData || lifts.isPlaceholderData || records.isPlaceholderData;
+  const refetchAll = () => {
+    summary.refetch();
+    lifts.refetch();
+    records.refetch();
+  };
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => {
-            summary.refetch();
-            exerciseStats.refetch();
-          }}
-        />
-      }>
-      {neverTrained ? (
-        <EmptyState
-          icon="trending-up"
-          title="Your progress starts here"
-          message="Finish your first workout and this screen fills with charts: strength over time, weekly volume, streaks, and personal records."
-          action={<Button title="Start a workout" icon="add" fullWidth={false} onPress={startEmpty} />}
-        />
-      ) : (
-        <>
-          <RangeFilter />
-          {/* While a new range loads, keep the previous charts on screen, dimmed: no flash, no layout jump. */}
-          <View style={[styles.sections, summary.isPlaceholderData && { opacity: 0.5 }]}>
-            <Headline summary={summary.data} unit={unit} comparison={previousPeriodLabel(range)} />
-            <StreakCard weeks={summary.data.currentStreakWeeks} />
-            <TrendCard summary={summary.data} unit={unit} rangeText={rangeLabel(range).toLowerCase()} />
-            <MuscleSplitCard summary={summary.data} />
-          </View>
-          <LiftsList stats={exerciseStats.data ?? []} unit={unit} />
-        </>
-      )}
+      refreshControl={<RefreshControl refreshing={summary.isRefetching && !loadingNewRange} onRefresh={refetchAll} />}>
+      <RangeFilter />
+      {/* While a new range loads, keep the previous content on screen, dimmed: no flash, no layout jump. */}
+      <View style={[styles.sections, loadingNewRange && { opacity: 0.5 }]}>
+        <Consistency summary={summary.data} comparison={previousPeriodLabel(range)} />
+        {summary.data.workouts === 0 ? (
+          <EmptyState
+            icon="calendar-outline"
+            title="No workouts in this range"
+            message={`Nothing logged in the ${rangeLabel(range).toLowerCase()}.`}
+            action={
+              range.preset !== 'ALL' ? (
+                <Button title="Show all time" variant="secondary" fullWidth={false} onPress={() => range.setPreset('ALL')} />
+              ) : undefined
+            }
+          />
+        ) : (
+          <>
+            <RecentRecords records={records.data ?? []} />
+            <Lifts lifts={lifts.data} unit={unit} />
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 }
 
-// ------------------------------------------------------------------ headline numbers
+// ------------------------------------------------------------------ consistency
 
-function Headline({ summary, unit, comparison }: { summary: StatsSummary; unit: WeightUnit; comparison: string | null }) {
-  const { totals, previousTotals } = summary;
-  const delta = (pick: (t: StatsTotals) => number, format: (n: number) => string) => {
-    if (!previousTotals) return null;
-    const diff = pick(totals) - pick(previousTotals);
-    const base = pick(previousTotals);
-    return { value: diff, text: format(Math.abs(diff)), percent: base > 0 ? (diff / base) * 100 : null };
-  };
-
+function Consistency({ summary, comparison }: { summary: StatsSummary; comparison: string | null }) {
+  const change =
+    summary.previousWorkouts != null
+      ? {
+          value: summary.workouts - summary.previousWorkouts,
+          text: String(Math.abs(summary.workouts - summary.previousWorkouts)),
+          percent: null,
+        }
+      : null;
   return (
     <View style={{ gap: space.xs }}>
-      <View style={styles.kpis}>
-        <KpiTile label="Workouts" value={String(totals.workouts)} change={delta((t) => t.workouts, String)} />
+      <View style={styles.tiles}>
+        <KpiTile label="Workouts" value={String(summary.workouts)} change={change} />
         <KpiTile
-          label={`Volume (${unitLabel(unit)})`}
-          value={formatCompact(kgTo(unit, totals.volumeKg))}
-          change={delta((t) => kgTo(unit, t.volumeKg), formatCompact)}
+          label="Week streak"
+          value={summary.currentStreakWeeks > 0 ? `${summary.currentStreakWeeks} ${summary.currentStreakWeeks === 1 ? 'week' : 'weeks'}` : '—'}
         />
-        <KpiTile label="Sets" value={String(totals.sets)} change={delta((t) => t.sets, String)} />
       </View>
-      {comparison && (
+      {comparison && change && (
         <Text variant="caption" color="textTertiary">
-          Changes {comparison}
+          Workouts {comparison}
+          {summary.currentStreakWeeks === 0 ? ' · Train this week to start a streak' : ''}
         </Text>
       )}
     </View>
   );
 }
 
-function StreakCard({ weeks }: { weeks: number }) {
+// ------------------------------------------------------------------ recent PRs
+
+/** Records from the same session and lift shown as one row ("260 lb × 6 · heaviest + est. 1RM"). */
+type RecordGroup = { key: string; exerciseId: string; exerciseName: string; achievedAt: string; records: RecentRecord[] };
+
+function groupRecords(records: RecentRecord[]): RecordGroup[] {
+  const groups = new Map<string, RecordGroup>();
+  records.forEach((r) => {
+    const key = `${r.workoutId}-${r.exerciseId}`;
+    const group = groups.get(key) ?? { key, exerciseId: r.exerciseId, exerciseName: r.exerciseName, achievedAt: r.achievedAt, records: [] };
+    group.records.push(r);
+    groups.set(key, group);
+  });
+  return [...groups.values()];
+}
+
+/**
+ * The record set and what it beat: "260 lb × 6 · new heaviest", or
+ * "185 lb × 12 · new best set" when more reps (not more weight) set the record.
+ */
+function describeGroup(group: RecordGroup): string {
+  const heaviest = group.records.find((r) => r.type === 'HEAVIEST_WEIGHT');
+  const record = heaviest ?? group.records[0];
+  const set = `${formatWeight(record.weight)} ${unitLabel(record.weightUnit)} × ${record.reps}`;
+  return `${set} · ${heaviest ? 'new heaviest' : 'new best set'}`;
+}
+
+function RecentRecords({ records }: { records: RecentRecord[] }) {
   const { colors } = useTheme();
-  return (
-    <Card style={styles.streak}>
-      <View style={[styles.streakIcon, { backgroundColor: weeks > 0 ? colors.accentMuted : colors.surfaceRaised }]}>
-        <Icon name="flame" size={24} color={weeks > 0 ? 'accentText' : 'textTertiary'} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text variant="headline">{weeks > 0 ? `${weeks}-week streak` : 'No active streak'}</Text>
-        <Text variant="footnote" color="textSecondary">
-          {weeks > 0 ? 'Consecutive weeks with at least one workout.' : 'Train this week to start a new streak.'}
-        </Text>
-      </View>
-    </Card>
-  );
-}
-
-// ------------------------------------------------------------------ trend chart
-
-const trendTitles: Record<TrendMetric, string> = { volume: 'Training volume', workouts: 'Workouts', sets: 'Working sets' };
-
-function TrendCard({ summary, unit, rangeText }: { summary: StatsSummary; unit: WeightUnit; rangeText: string }) {
-  const [metric, setMetric] = useState<TrendMetric>('volume');
-  const weekly = summary.bucket === 'WEEK';
-
-  const value = (b: StatsSummary['buckets'][number]) =>
-    metric === 'volume' ? kgTo(unit, b.volumeKg) : metric === 'workouts' ? b.workouts : b.sets;
-  // Values are already in the user's unit (see `value`), so format without converting again.
-  const format = (v: number) =>
-    metric === 'volume' ? `${Math.round(v).toLocaleString()} ${unitLabel(unit)}` : `${Math.round(v)} ${metric}`;
-  const bucketName = (start: string) => {
-    const d = parseLocalDate(start);
-    return weekly
-      ? `Week of ${shortDate(d)}`
-      : d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-  };
-  const columns = summary.buckets.map((b) => ({
-    key: b.start,
-    label: weekly ? axisDate(parseLocalDate(b.start)) : parseLocalDate(b.start).toLocaleDateString(undefined, { month: 'short' }),
-    tooltipLabel: bucketName(b.start),
-    value: value(b),
-  }));
-  const average = columns.reduce((sum, c) => sum + c.value, 0) / Math.max(1, columns.length);
+  const [showAll, setShowAll] = useState(false);
+  const groups = groupRecords(records);
+  const visible = showAll ? groups : groups.slice(0, RECORDS_PREVIEW);
 
   return (
-    <Card>
-      <View style={styles.cardHeader}>
-        <Text variant="headline">{trendTitles[metric]}</Text>
-        <Text variant="footnote" color="textSecondary">
-          Per {weekly ? 'week' : 'month'}, {rangeText} · avg {format(average)}
-        </Text>
-      </View>
-      <SegmentedControl<TrendMetric>
-        accessibilityLabel="Chart metric"
-        options={[
-          { value: 'volume', label: 'Volume' },
-          { value: 'workouts', label: 'Workouts' },
-          { value: 'sets', label: 'Sets' },
-        ]}
-        value={metric}
-        onChange={setMetric}
-      />
-      <ColumnChart
-        data={columns}
-        formatValue={format}
-        accessibilityLabel={`${trendTitles[metric]} per ${weekly ? 'week' : 'month'}, ${rangeText}. Average ${format(average)}.`}
-      />
-      <DataTable
-        columns={[weekly ? 'Week of' : 'Month', trendTitles[metric]]}
-        rows={[...columns].reverse().map((c) => ({ key: c.key, cells: [c.tooltipLabel.replace('Week of ', ''), format(c.value)] }))}
-      />
-    </Card>
-  );
-}
-
-/** Sets per muscle group: shows which areas get the most (and least) work. */
-function MuscleSplitCard({ summary }: { summary: StatsSummary }) {
-  return (
-    <Card>
-      <View style={styles.cardHeader}>
-        <Text variant="headline">Sets by muscle group</Text>
-        <Text variant="footnote" color="textSecondary">
-          Working sets in this range, warm-ups excluded
-        </Text>
-      </View>
-      {summary.muscleGroups.length === 0 ? (
-        <Text variant="subhead" color="textTertiary">
-          No sets logged in this range.
-        </Text>
+    <View style={{ gap: space.sm }}>
+      <SectionHeader title="Personal records" subtitle={groups.length > 0 ? `${groups.length} in this range` : undefined} />
+      {groups.length === 0 ? (
+        <View style={[styles.panel, styles.emptyPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Icon name="trophy-outline" size={20} color="textTertiary" />
+          <Text variant="subhead" color="textSecondary" style={{ flex: 1 }}>
+            No new records in this range yet. Beat your best weight or reps on any lift to set one.
+          </Text>
+        </View>
       ) : (
-        <HorizontalBars
-          data={summary.muscleGroups.map((m) => ({ key: m.muscleGroup, label: muscleGroupLabel[m.muscleGroup], value: m.sets }))}
-        />
+        <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {visible.map((group, i) => {
+            const title = describeGroup(group);
+            return (
+              <Pressable
+                key={group.key}
+                onPress={() => router.push(`/progress/${group.exerciseId}`)}
+                accessibilityRole="button"
+                accessibilityLabel={`${group.exerciseName}, personal record: ${title}, ${shortDate(group.achievedAt)}`}
+                style={({ pressed }) => [
+                  styles.row,
+                  i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+                  pressed && { backgroundColor: colors.surfaceRaised },
+                ]}>
+                <View style={[styles.trophy, { backgroundColor: colors.surfaceRaised }]}>
+                  <Icon name="trophy" size={16} color="gold" />
+                </View>
+                <View style={{ flex: 1, gap: 1 }}>
+                  <Text variant="subhead" weight="600" numberOfLines={1}>
+                    {group.exerciseName}
+                  </Text>
+                  <Text variant="footnote" color="textSecondary" numberOfLines={1}>
+                    {title}
+                  </Text>
+                </View>
+                <Text variant="caption" color="textTertiary">
+                  {shortDate(group.achievedAt)}
+                </Text>
+              </Pressable>
+            );
+          })}
+          {groups.length > RECORDS_PREVIEW && (
+            <Pressable
+              onPress={() => setShowAll((s) => !s)}
+              accessibilityRole="button"
+              style={[styles.row, styles.showAll, { borderTopColor: colors.border }]}>
+              <Text variant="footnote" weight="600" color="accentText">
+                {showAll ? 'Show fewer' : `Show all ${groups.length}`}
+              </Text>
+            </Pressable>
+          )}
+        </View>
       )}
-    </Card>
+    </View>
   );
 }
 
-// ------------------------------------------------------------------ lifts list
+// ------------------------------------------------------------------ lifts
 
-function LiftsList({ stats, unit }: { stats: ExerciseStats[]; unit: WeightUnit }) {
+function Lifts({ lifts, unit }: { lifts: ExerciseStats[]; unit: WeightUnit }) {
   const { colors } = useTheme();
   return (
     <View style={{ gap: space.sm }}>
-      <View style={styles.cardHeader}>
-        <Text variant="title2">Your lifts</Text>
-        <Text variant="footnote" color="textSecondary">
-          All-time bests and recent trend. Tap a lift for its charts.
-        </Text>
-      </View>
-      <View style={[styles.list, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        {stats.map((s, i) => {
-          const bodyweight = s.equipment === 'BODYWEIGHT' || s.heaviestWeightKg === 0;
+      <SectionHeader title="Your lifts" subtitle="Change in strength over this range. Tap a lift for its chart." />
+      <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {lifts.map((lift, i) => {
+          const bodyweight = lift.equipment === 'BODYWEIGHT' || lift.heaviestWeightKg === 0;
+          const series = bodyweight ? lift.rangeBestReps : lift.rangeBestE1rmKg.map((kg) => kgTo(unit, kg));
+          const latest = series[series.length - 1];
+          const diff = series.length > 1 ? latest - series[0] : null;
+          const display = (v: number) => (bodyweight ? `${Math.round(v)} reps` : `${Math.round(v)} ${unitLabel(unit)}`);
+
           return (
             <Pressable
-              key={s.exerciseId}
-              onPress={() => router.push(`/progress/${s.exerciseId}`)}
+              key={lift.exerciseId}
+              onPress={() => router.push(`/progress/${lift.exerciseId}`)}
               accessibilityRole="button"
-              accessibilityLabel={`${s.exerciseName}, ${bodyweight ? `best ${s.bestReps} reps` : `best estimated one rep max ${Math.round(kgTo(unit, s.bestE1rmKg))} ${unitLabel(unit)}`}`}
+              accessibilityLabel={`${lift.exerciseName}. ${bodyweight ? 'Best set' : 'Estimated one rep max'} ${display(latest)}${diff != null ? `, ${diff >= 0 ? 'up' : 'down'} ${display(Math.abs(diff))}` : ''}`}
               style={({ pressed }) => [
-                styles.liftRow,
+                styles.row,
                 i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
                 pressed && { backgroundColor: colors.surfaceRaised },
               ]}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text variant="body" weight="600" numberOfLines={1}>
-                  {s.exerciseName}
+                  {lift.exerciseName}
                 </Text>
-                <Text variant="footnote" color="textSecondary">
-                  {s.sessions} session{s.sessions === 1 ? '' : 's'} · last {shortDate(s.lastPerformedAt)}
+                <Text variant="footnote" color="textSecondary" numberOfLines={1}>
+                  {bodyweight ? `Best ${display(latest)}` : `Est. 1RM ${display(latest)}`}
                 </Text>
               </View>
-              {!bodyweight && <Sparkline values={s.recentBestE1rmKg} />}
-              <View style={styles.liftBest}>
-                <Text variant="headline">{bodyweight ? s.bestReps : Math.round(kgTo(unit, s.bestE1rmKg))}</Text>
-                <Text variant="caption" color="textTertiary">
-                  {bodyweight ? 'best reps' : `e1RM ${unitLabel(unit)}`}
-                </Text>
+              <Sparkline values={series} width={52} />
+              <View style={styles.change}>
+                {diff != null ? (
+                  <Delta value={Math.round(diff)} text={display(Math.abs(diff))} compact />
+                ) : (
+                  <Text variant="caption" color="textTertiary">
+                    New
+                  </Text>
+                )}
               </View>
               <Icon name="chevron-forward" size={16} color="textTertiary" />
             </Pressable>
@@ -264,14 +276,27 @@ function LiftsList({ stats, unit }: { stats: ExerciseStats[]; unit: WeightUnit }
   );
 }
 
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <Text variant="title2">{title}</Text>
+      {subtitle && (
+        <Text variant="footnote" color="textSecondary">
+          {subtitle}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxxl },
-  sections: { gap: space.lg },
-  kpis: { flexDirection: 'row', gap: space.sm },
-  streak: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  streakIcon: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  cardHeader: { gap: 2 },
-  list: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
-  liftRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md },
-  liftBest: { alignItems: 'flex-end', minWidth: 56 },
+  sections: { gap: space.xl },
+  tiles: { flexDirection: 'row', gap: space.sm },
+  panel: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  emptyPanel: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md },
+  showAll: { justifyContent: 'center', borderTopWidth: StyleSheet.hairlineWidth },
+  trophy: { width: 32, height: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  change: { minWidth: 64, alignItems: 'flex-end' },
 });

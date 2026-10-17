@@ -49,18 +49,6 @@ export function niceTicks(min: number, max: number, count = 4, zeroBased = false
   return ticks;
 }
 
-/** Compact axis labels: 950 → "950", 1200 → "1.2K", 15000 → "15K", 2500000 → "2.5M". */
-export function formatCompact(value: number): string {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${trim(value / 1_000_000)}M`;
-  if (abs >= 1_000) return `${trim(value / 1_000)}K`;
-  return trim(value);
-}
-
-function trim(value: number): string {
-  return String(Number(value.toFixed(value >= 100 || value <= -100 ? 0 : 1)));
-}
-
 /** Index of the element of `xs` (sorted ascending) nearest to `x`. */
 export function nearestIndex(xs: number[], x: number): number {
   if (xs.length === 0) return -1;

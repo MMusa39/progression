@@ -112,9 +112,12 @@ a materialized summary table can be added without changing the API.
   and `e1rm_kg`. Every stats query reads from this view. PostgreSQL inlines simple
   views, so the underlying indexes are still used.
 
-Weekly and monthly buckets are computed with
+Weeks for the training streak are computed with
 `date_trunc('week', started_at AT TIME ZONE :tz)`, so a workout on Sunday
 night counts toward the week the *user* experienced, not the UTC week.
+Recent personal records use a window function: each session's best is compared
+with `max(...) OVER (PARTITION BY exercise ORDER BY started_at ROWS BETWEEN
+UNBOUNDED PRECEDING AND 1 PRECEDING)`, the best of all *earlier* sessions.
 
 ### Indexes
 

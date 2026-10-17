@@ -18,8 +18,7 @@ import jakarta.persistence.Version;
 
 /**
  * A single set: {@code weight × reps}. The database also keeps a generated
- * {@code weight_kg} column for analytics. It isn't mapped here because Java
- * code uses {@link WeightUnit#toKg} instead.
+ * {@code weight_kg} column, used by the analytics queries; it isn't mapped here.
  */
 @Entity
 @Table(name = "exercise_set")
@@ -74,14 +73,6 @@ public class ExerciseSet {
 		this.reps = reps;
 		this.rpe = rpe;
 		this.completedAt = completedAt;
-	}
-
-	/** Weight × reps in kilograms. Warm-up sets contribute zero. */
-	public BigDecimal volumeKg() {
-		if (!setType.countsTowardStats()) {
-			return BigDecimal.ZERO;
-		}
-		return weightUnit.toKg(weight).multiply(BigDecimal.valueOf(reps));
 	}
 
 	public UUID getId() {

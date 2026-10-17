@@ -1,4 +1,4 @@
-import { formatCompact, linearScale, nearestIndex, niceTicks } from '@/components/charts/scale';
+import { linearScale, nearestIndex, niceTicks } from '@/components/charts/scale';
 
 describe('linearScale', () => {
   it('maps domain onto range, including inverted ranges (SVG y grows downward)', () => {
@@ -27,16 +27,6 @@ describe('niceTicks', () => {
     expect(ticks[0]).toBeLessThan(100);
     expect(ticks.at(-1)).toBeGreaterThan(100);
   });
-});
-
-describe('formatCompact', () => {
-  it.each([
-    [0, '0'],
-    [950, '950'],
-    [1200, '1.2K'],
-    [15000, '15K'],
-    [2_500_000, '2.5M'],
-  ])('%d → %s', (value, expected) => expect(formatCompact(value)).toBe(expected));
 });
 
 describe('nearestIndex', () => {

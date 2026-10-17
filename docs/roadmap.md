@@ -29,9 +29,10 @@ merged with tests and documentation.
 ## Phase 3: Progress & insights
 - [x] `working_set` view + `estimated_one_rep_max` SQL function (V3 migration)
 - [x] Stats endpoints: summary (totals, previous-period comparison, streak, time-zone-aware weekly/monthly buckets, muscle split), per-exercise progression, exercise records, workout PRs
-- [x] Custom SVG charts (line, column, horizontal bars, sparkline) following the dataviz guidelines: touch scrubbing, fixed readout, table view, validated colors
+- [x] Custom SVG charts (line chart + sparkline) following the dataviz guidelines: touch scrubbing, validated colors
+- [x] Simplified after on-device testing: dropped volume/tonnage, muscle-group split and volume charts; added recent PRs and range-scoped lift progress (ADR 0007)
 - [x] Time-range filter: 4W / 3M / 6M / 1Y / All + custom "last N weeks/months", shared across screens
-- [x] Progress tab, per-exercise progress screen, PR badges in history, "Workout complete" screen with PR celebration
+- [x] Progress tab (workouts, streak, recent PRs, lifts with strength change), per-exercise screen (chart + sessions + records), PR badges in history, "Workout complete" PR celebration
 - [x] Dev data seed script + web preview for visual checks
 
 ## Phase 4: Authentication

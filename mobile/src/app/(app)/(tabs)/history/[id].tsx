@@ -6,12 +6,10 @@ import { Button, Card, EmptyState, Icon, StatTile, Text } from '@/components/ui'
 import { useDeleteWorkout, useWeightUnit, useWorkout, useWorkoutRecords } from '@/features/api/queries';
 import type { Workout } from '@/features/api/types';
 import { PersonalRecordList } from '@/features/progress/records';
-import { formatDuration, formatSet, formatVolumeCompact, muscleGroupLabel, unitLabel } from '@/features/workout/format';
+import { formatDuration, formatSet, muscleGroupLabel, unitLabel } from '@/features/workout/format';
 import { useStartWorkout } from '@/features/workout/useStartWorkout';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
-
-const KG_PER_LB = 0.45359237;
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,8 +46,8 @@ export default function WorkoutDetailScreen() {
 
       <View style={styles.stats}>
         <StatTile label="Duration" value={formatDuration(data.startedAt, data.endedAt) ?? '—'} />
+        <StatTile label="Exercises" value={String(data.exercises.length)} />
         <StatTile label="Sets" value={String(stats.sets)} />
-        <StatTile label="Volume" value={formatVolumeCompact(stats.volumeKg, unit)} />
       </View>
 
       {records.data && records.data.length > 0 && (
@@ -127,9 +125,7 @@ function setLabel(sets: Workout['exercises'][number]['sets'], index: number): st
 }
 
 function summarize(workout: Workout) {
-  const counted = workout.exercises.flatMap((e) => e.sets).filter((s) => s.setType !== 'WARMUP');
-  const volumeKg = counted.reduce((sum, s) => sum + (s.weightUnit === 'LB' ? s.weight * KG_PER_LB : s.weight) * s.reps, 0);
-  return { sets: counted.length, volumeKg };
+  return { sets: workout.exercises.flatMap((e) => e.sets).filter((s) => s.setType !== 'WARMUP').length };
 }
 
 const styles = StyleSheet.create({

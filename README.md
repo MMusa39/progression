@@ -34,9 +34,9 @@ answer those questions for you.
 | Sign up your way | Create an account with email, phone number, or Google. |
 | Fast set logging | Log weight × reps per set in a few taps, with sensible defaults copied from your last set. |
 | "Last time" inline | While logging an exercise, see exactly what you did last session. |
-| Progress charts | Estimated 1-rep max, top set, volume, or reps per exercise; weekly/monthly training volume; muscle-group split. Touch and drag to read any point. |
-| Any time range | Last 4 weeks, 3 / 6 / 12 months, all time, or any custom "last N weeks/months", with comparisons against the previous period. |
-| Personal records | Automatic detection of new PRs (estimated 1RM, heaviest weight, session volume), celebrated when you finish and badged in history. |
+| Strength progress | For every lift: how much stronger you got over the range, and a chart of estimated 1-rep max or heaviest weight per session. Touch and drag to read any session. |
+| Any time range | Last 4 weeks, 3 / 6 / 12 months, all time, or any custom "last N weeks/months". |
+| Personal records | Automatic detection of new PRs (heaviest weight, best estimated 1RM), celebrated when you finish, listed on the Progress tab, and badged in history. |
 | Streaks | Consecutive weeks trained, counted in your own time zone. |
 | Templates | Save routines like "Push Day" and start a workout pre-filled from the last time you ran it. |
 | Rest timer | Starts automatically after each completed set. |

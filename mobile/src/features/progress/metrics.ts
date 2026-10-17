@@ -5,7 +5,7 @@
 import type { Equipment, ExerciseProgression, ProgressionPoint, WeightUnit } from '@/features/api/types';
 import { formatWeight, kgTo, unitLabel } from '@/features/workout/format';
 
-export type MetricKey = 'e1rm' | 'topSet' | 'volume' | 'reps';
+export type MetricKey = 'e1rm' | 'topSet' | 'reps';
 
 type Metric = {
   key: MetricKey;
@@ -23,27 +23,19 @@ const weight = (value: number, unit: WeightUnit) => `${formatWeight(Math.round(v
 export const metrics: Record<MetricKey, Metric> = {
   e1rm: {
     key: 'e1rm',
-    label: 'Est. 1RM',
+    label: 'Strength',
     title: 'Estimated one-rep max',
-    description: 'The most you could likely lift once, estimated from your best set each session.',
+    description: 'Your best set each session as a one-rep max estimate. Goes up when you add weight or reps.',
     value: (p, unit) => kgTo(unit, p.bestE1rmKg),
     format: (v, unit) => `${Math.round(v)} ${unitLabel(unit)}`,
   },
   topSet: {
     key: 'topSet',
-    label: 'Top set',
-    title: 'Heaviest set',
-    description: 'The heaviest weight you lifted each session.',
+    label: 'Heaviest',
+    title: 'Heaviest weight',
+    description: 'The most weight you lifted in each session.',
     value: (p, unit) => kgTo(unit, p.topSetWeightKg),
     format: weight,
-  },
-  volume: {
-    key: 'volume',
-    label: 'Volume',
-    title: 'Session volume',
-    description: 'Total weight moved per session (weight × reps, warm-ups excluded).',
-    value: (p, unit) => kgTo(unit, p.volumeKg),
-    format: (v, unit) => `${Math.round(v).toLocaleString()} ${unitLabel(unit)}`,
   },
   reps: {
     key: 'reps',

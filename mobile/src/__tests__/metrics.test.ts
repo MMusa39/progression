@@ -4,7 +4,7 @@ import { describeRecord } from '@/features/progress/records';
 
 const point: ProgressionPoint = {
   workoutId: 'w', performedAt: '2026-10-01T18:00:00Z', bestE1rmKg: 100, topSetWeightKg: 90.718474,
-  topSetReps: 5, volumeKg: 1000, totalReps: 20, bestReps: 8, setCount: 4,
+  topSetReps: 5, bestReps: 8, setCount: 4,
 };
 
 describe('metrics', () => {
@@ -38,8 +38,4 @@ describe('describeRecord', () => {
     expect(describeRecord(record, 'LB')).toEqual({ title: 'Heaviest weight: 225 lb × 3', detail: 'previous best 215 lb' });
   });
 
-  it('describes volume records without a set', () => {
-    const volume = { ...record, type: 'SESSION_VOLUME' as const, setId: null, weight: null, weightUnit: null, reps: null, valueKg: 2449.4, previousKg: 2000 };
-    expect(describeRecord(volume, 'LB').title).toBe('Session volume: 5,400 lb');
-  });
 });

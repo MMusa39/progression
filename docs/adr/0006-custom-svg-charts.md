@@ -39,3 +39,7 @@ Option 3. About 400 lines of focused, unit-tested code in
 - No third-party chart dependency to keep in sync with Expo SDK upgrades.
 - More code to own. That's acceptable for four chart types, but it would be revisited
   if the app needed many more (e.g. heatmaps or zoomable charts).
+
+> **Update (ADR 0007):** after on-device testing, the column and horizontal-bar
+> charts were removed along with the volume metrics they showed. The line chart
+> and sparkline remain.

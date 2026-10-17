@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Icon, StatTile, Text } from '@/components/ui';
 import { useWeightUnit, useWorkoutRecords } from '@/features/api/queries';
 import { PersonalRecordList } from '@/features/progress/records';
-import { formatDuration, formatVolumeCompact } from '@/features/workout/format';
+import { formatDuration } from '@/features/workout/format';
 import { useLastFinished } from '@/features/workout/lastFinished';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
 import { radius, space } from '@/theme/tokens';
@@ -63,8 +63,8 @@ export default function WorkoutCompleteScreen() {
         {summary && (
           <View style={styles.stats}>
             <StatTile label="Duration" value={formatDuration(summary.startedAt, summary.endedAt) ?? '—'} />
+            <StatTile label="Exercises" value={String(summary.exercises.length)} />
             <StatTile label="Sets" value={String(summary.sets)} />
-            <StatTile label="Volume" value={formatVolumeCompact(summary.volumeKg, unit)} />
           </View>
         )}
 

@@ -24,6 +24,7 @@ import type {
   MuscleGroup,
   Page,
   PersonalRecord,
+  RecentRecord,
   StatsSummary,
   User,
   WeightUnit,
@@ -42,7 +43,8 @@ export const queryKeys = {
   /** Everything under ['stats'] is invalidated whenever workouts change. */
   stats: ['stats'] as const,
   statsSummary: (from: string | null, tz: string) => ['stats', 'summary', from, tz] as const,
-  exerciseStats: ['stats', 'exercises'] as const,
+  exerciseStats: (from: string | null) => ['stats', 'exercises', from] as const,
+  recentRecords: (from: string | null) => ['stats', 'records', from] as const,
   progression: (exerciseId: string, from: string | null) => ['stats', 'progression', exerciseId, from] as const,
 };
 
@@ -144,27 +146,42 @@ export function useDeleteWorkout() {
 
 // ------------------------------------------------------------------ stats
 
+const withFrom = (path: string, fromIso: string | null, extra = '') => {
+  const params = [extra, fromIso ? `from=${encodeURIComponent(fromIso)}` : ''].filter(Boolean).join('&');
+  return params ? `${path}?${params}` : path;
+};
+
 /**
- * Overview for the Progress tab. `placeholderData: keepPreviousData` keeps the
- * previous range's charts on screen while a new range loads (dimmed by the
- * screen), so switching ranges never flashes empty.
+ * Stats hooks use `placeholderData: keepPreviousData`: while a new range loads,
+ * the previous range's content stays on screen (dimmed by the screen), so
+ * switching ranges never flashes empty.
  */
 export function useStatsSummary(from: Date | null, tz: string) {
   const fromIso = from?.toISOString() ?? null;
   return useQuery({
     queryKey: queryKeys.statsSummary(fromIso, tz),
-    queryFn: () =>
-      apiRequest<StatsSummary>(
-        `/api/v1/stats/summary?tz=${encodeURIComponent(tz)}${fromIso ? `&from=${encodeURIComponent(fromIso)}` : ''}`,
-      ),
+    queryFn: () => apiRequest<StatsSummary>(withFrom('/api/v1/stats/summary', fromIso, `tz=${encodeURIComponent(tz)}`)),
     placeholderData: keepPreviousData,
   });
 }
 
-export function useExerciseStats() {
+/** Exercises performed in the range, with how they moved and their all-time bests. */
+export function useExerciseStats(from: Date | null) {
+  const fromIso = from?.toISOString() ?? null;
   return useQuery({
-    queryKey: queryKeys.exerciseStats,
-    queryFn: () => apiRequest<ExerciseStats[]>('/api/v1/stats/exercises'),
+    queryKey: queryKeys.exerciseStats(fromIso),
+    queryFn: () => apiRequest<ExerciseStats[]>(withFrom('/api/v1/stats/exercises', fromIso)),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Personal records set within the range, newest first. */
+export function useRecentRecords(from: Date | null) {
+  const fromIso = from?.toISOString() ?? null;
+  return useQuery({
+    queryKey: queryKeys.recentRecords(fromIso),
+    queryFn: () => apiRequest<RecentRecord[]>(withFrom('/api/v1/stats/records', fromIso)),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -172,10 +189,7 @@ export function useExerciseProgression(exerciseId: string, from: Date | null) {
   const fromIso = from?.toISOString() ?? null;
   return useQuery({
     queryKey: queryKeys.progression(exerciseId, fromIso),
-    queryFn: () =>
-      apiRequest<ExerciseProgression>(
-        `/api/v1/stats/exercises/${exerciseId}/progression${fromIso ? `?from=${encodeURIComponent(fromIso)}` : ''}`,
-      ),
+    queryFn: () => apiRequest<ExerciseProgression>(withFrom(`/api/v1/stats/exercises/${exerciseId}/progression`, fromIso)),
     placeholderData: keepPreviousData,
   });
 }

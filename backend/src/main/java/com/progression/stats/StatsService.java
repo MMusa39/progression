@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.progression.common.error.BadRequestException;
@@ -27,17 +26,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Progress analytics: summaries, per-exercise time series, and personal records.
- * All values are computed on demand from logged sets (see {@code working_set}).
+ * Progress analytics focused on what a lifter acts on: is each lift getting
+ * stronger, which personal records were set, and is training consistent.
+ * Everything is computed on demand from logged sets (see {@code working_set}).
  */
 @Service
 public class StatsService {
 
-	/** AUTO buckets switch from weekly to monthly bars beyond this span (~6 months). */
-	static final Duration WEEKLY_BUCKET_LIMIT = Duration.ofDays(7 * 26);
+	/** Upper bound for "from the range start until now (and beyond, for clock skew)". */
+	private static final Instant FAR_FUTURE = Instant.parse("9999-01-01T00:00:00Z");
 
-	/** Differences smaller than this are rounding noise, not a new record. */
-	private static final double RECORD_EPSILON = 0.005;
+	static final int RECENT_RECORDS_LIMIT = 30;
 
 	private final StatsRepository stats;
 	private final ExerciseRepository exercises;
@@ -49,75 +48,26 @@ public class StatsService {
 		this.clock = clock;
 	}
 
-	// ------------------------------------------------------------------ summary
+	// ------------------------------------------------------------------ consistency
 
 	/**
 	 * @param from   start of the range, or {@code null} for all time
-	 * @param zoneId IANA time zone of the user, used for week/month boundaries
-	 * @param bucket requested bucket size, or AUTO
+	 * @param zoneId IANA time zone of the user, so weeks follow their calendar
 	 */
 	@Transactional(readOnly = true)
-	public StatsSummaryResponse summary(CurrentUser user, Instant from, String zoneId, Bucket bucket) {
+	public StatsSummaryResponse summary(CurrentUser user, Instant from, String zoneId) {
 		ZoneId zone = parseZone(zoneId);
 		Instant now = clock.instant();
 		validateFrom(from, now);
 
-		Instant rangeStart = from != null ? from : stats.firstWorkoutAt(user.id()).orElse(now);
-		Bucket resolved = resolveBucket(bucket, rangeStart, now);
-
-		List<StatsSummaryResponse.BucketPoint> filled = fillBuckets(
-				stats.buckets(user.id(), rangeStart, StatsRepository.FAR_FUTURE, resolved, zone.getId()),
-				rangeStart, now, resolved, zone);
-
-		StatsSummaryResponse.Totals totals = stats.totals(user.id(), rangeStart, StatsRepository.FAR_FUTURE);
-		StatsSummaryResponse.Totals previous = null;
+		int workouts = stats.workoutCount(user.id(), from != null ? from : Instant.EPOCH, FAR_FUTURE);
+		Integer previous = null;
 		if (from != null) {
 			// The equally long window just before the range, e.g. the 4 weeks before "last 4 weeks".
-			Duration length = Duration.between(from, now);
-			previous = stats.totals(user.id(), from.minus(length), from);
+			previous = stats.workoutCount(user.id(), from.minus(Duration.between(from, now)), from);
 		}
-
-		return new StatsSummaryResponse(
-				from,
-				resolved,
-				totals,
-				previous,
-				currentStreakWeeks(stats.activeWeeks(user.id(), zone.getId()), LocalDate.now(clock.withZone(zone))),
-				filled,
-				stats.muscleGroups(user.id(), rangeStart, StatsRepository.FAR_FUTURE));
-	}
-
-	static Bucket resolveBucket(Bucket requested, Instant rangeStart, Instant now) {
-		if (requested != Bucket.AUTO) {
-			return requested;
-		}
-		return Duration.between(rangeStart, now).compareTo(WEEKLY_BUCKET_LIMIT) <= 0 ? Bucket.WEEK : Bucket.MONTH;
-	}
-
-	/**
-	 * Returns one bucket per week/month from the range start to the current one,
-	 * using zeros where nothing was logged. Leaving empty weeks out would
-	 * visually compress time and hide breaks in training.
-	 */
-	static List<StatsSummaryResponse.BucketPoint> fillBuckets(List<StatsSummaryResponse.BucketPoint> nonEmpty,
-			Instant rangeStart, Instant now, Bucket bucket, ZoneId zone) {
-		Map<LocalDate, StatsSummaryResponse.BucketPoint> byStart = nonEmpty.stream()
-				.collect(Collectors.toMap(StatsSummaryResponse.BucketPoint::start, Function.identity()));
-
-		LocalDate cursor = bucketStart(LocalDate.ofInstant(rangeStart, zone), bucket);
-		LocalDate last = bucketStart(LocalDate.ofInstant(now, zone), bucket);
-		List<StatsSummaryResponse.BucketPoint> result = new ArrayList<>();
-		while (!cursor.isAfter(last)) {
-			result.add(byStart.getOrDefault(cursor, new StatsSummaryResponse.BucketPoint(cursor, 0, 0, 0)));
-			cursor = bucket == Bucket.WEEK ? cursor.plusWeeks(1) : cursor.plusMonths(1);
-		}
-		return result;
-	}
-
-	static LocalDate bucketStart(LocalDate date, Bucket bucket) {
-		return bucket == Bucket.WEEK
-				? date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-				: date.withDayOfMonth(1);
+		int streak = currentStreakWeeks(stats.activeWeeks(user.id(), zone.getId()), LocalDate.now(clock.withZone(zone)));
+		return new StatsSummaryResponse(from, workouts, previous, streak);
 	}
 
 	/**
@@ -128,7 +78,7 @@ public class StatsService {
 	 * @param activeWeeks Mondays of weeks with a workout, newest first
 	 */
 	static int currentStreakWeeks(List<LocalDate> activeWeeks, LocalDate today) {
-		LocalDate thisWeek = bucketStart(today, Bucket.WEEK);
+		LocalDate thisWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 		Set<LocalDate> active = Set.copyOf(activeWeeks);
 		LocalDate cursor = active.contains(thisWeek) ? thisWeek : thisWeek.minusWeeks(1);
 		int streak = 0;
@@ -139,11 +89,13 @@ public class StatsService {
 		return streak;
 	}
 
-	// ------------------------------------------------------------------ exercises
+	// ------------------------------------------------------------------ strength
 
+	/** Exercises performed in the range, with how they moved and their all-time bests. */
 	@Transactional(readOnly = true)
-	public List<ExerciseStatsResponse> exerciseStats(CurrentUser user) {
-		return stats.exerciseStats(user.id());
+	public List<ExerciseStatsResponse> exerciseStats(CurrentUser user, Instant from) {
+		validateFrom(from, clock.instant());
+		return stats.exerciseStats(user.id(), from != null ? from : Instant.EPOCH);
 	}
 
 	@Transactional(readOnly = true)
@@ -161,6 +113,13 @@ public class StatsService {
 	}
 
 	// ------------------------------------------------------------------ personal records
+
+	/** Personal records set within the range, newest first. */
+	@Transactional(readOnly = true)
+	public List<RecentRecordResponse> recentRecords(CurrentUser user, Instant from) {
+		validateFrom(from, clock.instant());
+		return stats.recentRecords(user.id(), from != null ? from : Instant.EPOCH, RECENT_RECORDS_LIMIT);
+	}
 
 	/**
 	 * Personal records set in one workout, compared against every workout that
@@ -189,7 +148,7 @@ public class StatsService {
 					.max(Comparator.comparingDouble(StatsRepository.WorkoutSet::e1rmKg)
 							.thenComparingDouble(StatsRepository.WorkoutSet::weightKg))
 					.orElseThrow();
-			if (bestE1rm.e1rmKg() > before.e1rmKg() + RECORD_EPSILON) {
+			if (bestE1rm.e1rmKg() > before.e1rmKg() + StatsRepository.RECORD_EPSILON) {
 				records.add(record(bestE1rm, RecordType.ESTIMATED_1RM, bestE1rm.e1rmKg(), before.e1rmKg()));
 			}
 
@@ -197,14 +156,8 @@ public class StatsService {
 					.max(Comparator.comparingDouble(StatsRepository.WorkoutSet::weightKg)
 							.thenComparingInt(StatsRepository.WorkoutSet::reps))
 					.orElseThrow();
-			if (heaviest.weightKg() > before.heaviestKg() + RECORD_EPSILON) {
+			if (heaviest.weightKg() > before.heaviestKg() + StatsRepository.RECORD_EPSILON) {
 				records.add(record(heaviest, RecordType.HEAVIEST_WEIGHT, heaviest.weightKg(), before.heaviestKg()));
-			}
-
-			double volume = sets.stream().mapToDouble(StatsRepository.WorkoutSet::volumeKg).sum();
-			if (volume > before.sessionVolumeKg() + RECORD_EPSILON) {
-				records.add(new PersonalRecordResponse(exerciseId, sets.getFirst().exerciseName(),
-						RecordType.SESSION_VOLUME, null, round(volume), round(before.sessionVolumeKg()), null, null, null));
 			}
 		});
 		return records;
@@ -212,15 +165,11 @@ public class StatsService {
 
 	private static PersonalRecordResponse record(StatsRepository.WorkoutSet set, RecordType type, double value,
 			double previous) {
-		return new PersonalRecordResponse(set.exerciseId(), set.exerciseName(), type, set.setId(), round(value),
-				round(previous), set.weight(), set.weightUnit(), set.reps());
+		return new PersonalRecordResponse(set.exerciseId(), set.exerciseName(), type, set.setId(),
+				StatsRepository.round(value), StatsRepository.round(previous), set.weight(), set.weightUnit(), set.reps());
 	}
 
 	// ------------------------------------------------------------------ helpers
-
-	private static double round(double value) {
-		return Math.round(value * 100) / 100.0;
-	}
 
 	private static ZoneId parseZone(String zoneId) {
 		if (zoneId == null || zoneId.isBlank()) {

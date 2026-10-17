@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Tag(name = "Stats", description = "Progress analytics and personal records")
+@Tag(name = "Stats", description = "Strength progress, personal records and consistency")
 public class StatsController {
+
+	private static final String FROM_DESCRIPTION = "Range start (ISO-8601). Omit for all time.";
 
 	private final StatsService statsService;
 
@@ -24,27 +26,33 @@ public class StatsController {
 	}
 
 	@GetMapping("/api/v1/stats/summary")
-	@Operation(summary = "Training summary over a time range: totals, comparison with the previous period, "
-			+ "streak, weekly/monthly buckets and muscle-group split")
+	@Operation(summary = "Workouts in the range (and the previous period) plus the current weekly streak")
 	public StatsSummaryResponse summary(CurrentUser user,
-			@Parameter(description = "Range start (ISO-8601). Omit for all time.") @RequestParam(required = false) Instant from,
-			@Parameter(description = "IANA time zone for week/month boundaries, e.g. America/New_York")
-			@RequestParam(defaultValue = "UTC") String tz,
-			@RequestParam(defaultValue = "AUTO") Bucket bucket) {
-		return statsService.summary(user, from, tz, bucket);
+			@Parameter(description = FROM_DESCRIPTION) @RequestParam(required = false) Instant from,
+			@Parameter(description = "IANA time zone for week boundaries, e.g. America/New_York")
+			@RequestParam(defaultValue = "UTC") String tz) {
+		return statsService.summary(user, from, tz);
 	}
 
 	@GetMapping("/api/v1/stats/exercises")
-	@Operation(summary = "Every exercise the user has performed, with personal records and a recent trend")
-	public List<ExerciseStatsResponse> exercises(CurrentUser user) {
-		return statsService.exerciseStats(user);
+	@Operation(summary = "Exercises performed in the range: per-session bests in the range and all-time records")
+	public List<ExerciseStatsResponse> exercises(CurrentUser user,
+			@Parameter(description = FROM_DESCRIPTION) @RequestParam(required = false) Instant from) {
+		return statsService.exerciseStats(user, from);
 	}
 
 	@GetMapping("/api/v1/stats/exercises/{exerciseId}/progression")
-	@Operation(summary = "Per-session time series for one exercise (e1RM, top set, volume, reps)")
+	@Operation(summary = "Per-session time series for one exercise (estimated 1RM, top set, reps)")
 	public ExerciseProgressionResponse progression(CurrentUser user, @PathVariable UUID exerciseId,
-			@Parameter(description = "Range start (ISO-8601). Omit for all time.") @RequestParam(required = false) Instant from) {
+			@Parameter(description = FROM_DESCRIPTION) @RequestParam(required = false) Instant from) {
 		return statsService.progression(user, exerciseId, from);
+	}
+
+	@GetMapping("/api/v1/stats/records")
+	@Operation(summary = "Personal records set within the range, newest first")
+	public List<RecentRecordResponse> records(CurrentUser user,
+			@Parameter(description = FROM_DESCRIPTION) @RequestParam(required = false) Instant from) {
+		return statsService.recentRecords(user, from);
 	}
 
 	@GetMapping("/api/v1/workouts/{workoutId}/records")

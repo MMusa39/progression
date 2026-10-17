@@ -45,10 +45,14 @@ tokens in addition to Cognito tokens (see [Authentication](#authentication)).
   signal never loses a set. Finished workouts go through a persisted upload
   queue.
 - **Charts** are custom SVG components (`react-native-svg`) built to the
-  project's dataviz rules: single-series line/column/bar charts, touch
-  scrubbing with a fixed readout, a table view behind every chart, and colors
-  validated for contrast in both themes (see
+  project's dataviz rules: a single-series line chart per lift with touch
+  scrubbing, sparklines in lists, a readable session list behind every chart,
+  and colors validated for contrast in both themes (see
   [ADR 0006](adr/0006-custom-svg-charts.md)).
+- **Progress answers three questions:** is each lift getting stronger (estimated
+  1RM / heaviest weight over time), did I set records, am I consistent (workouts
+  and weekly streak). Total volume ("tonnage") was deliberately left out (see
+  [ADR 0007](adr/0007-focus-progress-on-strength.md)).
 - **One time-range filter** (4W/3M/6M/1Y/All or custom "last N weeks/months")
   scopes every chart on the Progress screens.
 

@@ -2,20 +2,18 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Card, Icon, Text } from '@/components/ui';
-import type { WeightUnit, WorkoutSummary } from '@/features/api/types';
+import type { WorkoutSummary } from '@/features/api/types';
 import { space } from '@/theme/tokens';
 
-import { formatDuration, formatVolume, formatWorkoutDate } from '../format';
+import { formatDuration, formatWorkoutDate } from '../format';
 
 /** History list item: date, name, headline stats and a preview of the exercises. */
 export function WorkoutSummaryCard({
   workout,
-  unit,
   onPress,
   action,
 }: {
   workout: WorkoutSummary;
-  unit: WeightUnit;
   onPress: () => void;
   /** Optional trailing button (e.g. "Repeat"), laid out beside the exercise preview. */
   action?: ReactNode;
@@ -36,8 +34,8 @@ export function WorkoutSummaryCard({
       <Text variant="headline">{workout.name}</Text>
       <View style={styles.stats}>
         {duration && <Stat icon="time-outline" text={duration} />}
+        <Stat icon="barbell-outline" text={`${workout.exerciseNames.length} exercise${workout.exerciseNames.length === 1 ? '' : 's'}`} />
         <Stat icon="layers-outline" text={`${workout.setCount} sets`} />
-        <Stat icon="barbell-outline" text={formatVolume(workout.totalVolumeKg, unit)} />
       </View>
       {(preview || action) && (
         <View style={styles.footer}>

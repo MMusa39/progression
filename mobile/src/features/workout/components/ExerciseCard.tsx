@@ -1,7 +1,7 @@
 /**
- * One exercise inside the active workout: header, "last time" summary, the set
- * table, and an "Add set" button. Fetches this exercise's last performance
- * to drive the PREVIOUS column and the greyed-out suggestions.
+ * One exercise inside the active workout: header, the set table, and an
+ * "Add set" button. Fetches this exercise's last performance to drive the
+ * PREVIOUS column and the greyed-out suggestions.
  */
 import * as Haptics from 'expo-haptics';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
@@ -12,7 +12,7 @@ import type { WeightUnit } from '@/features/api/types';
 import { space } from '@/theme/tokens';
 
 import { useActiveWorkout, type DraftExercise, type DraftSet } from '../activeWorkoutStore';
-import { formatSet, formatWeight, formatWorkoutDate, muscleGroupLabel, unitLabel } from '../format';
+import { formatSet, formatWeight, muscleGroupLabel, unitLabel } from '../format';
 import { SetRow, SetTableHeader, type Suggestion } from './SetRow';
 
 type ExerciseCardProps = {
@@ -73,15 +73,6 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
           <Icon name="ellipsis-horizontal" size={22} color="textSecondary" />
         </Pressable>
       </View>
-
-      {lastPerformance && (
-        <Text variant="footnote" color="textSecondary">
-          <Text variant="footnote" weight="600" color="textSecondary">
-            Last time ({formatWorkoutDate(lastPerformance.performedAt)}):{' '}
-          </Text>
-          {lastPerformance.sets.map((s) => formatSet(s.weight, s.reps)).join(', ')}
-        </Text>
-      )}
 
       <SetTableHeader unitLabel={unitLabel(tableUnit)} />
       {item.sets.map((set, i) => {

@@ -59,7 +59,7 @@ src/
 │       ├── workout.tsx          Active workout logger (modal sheet)
 │       ├── workout-complete.tsx Session summary + personal-record celebration
 │       └── exercise-picker.tsx  Search/filter/multi-select, create custom exercises
-├── components/charts/           SVG charts: LineChart, ColumnChart, HorizontalBars, Sparkline, DataTable
+├── components/charts/           SVG charts: LineChart (with touch scrubbing), Sparkline
 ├── components/ui/               Design-system components (Button, TextField, Card, ...)
 ├── theme/                       Design tokens (color, spacing, type) + useTheme
 ├── config/env.ts                Runtime config from EXPO_PUBLIC_* variables
@@ -111,12 +111,14 @@ invalidation after mutations. Query keys live in one place (`queryKeys`).
 - **One time range scopes everything** (`features/progress/range.ts`): presets
   4W / 3M / 6M / 1Y / All, or a custom "last N weeks/months". The selection is
   shared between the overview and every exercise screen and persisted.
+- **The Progress tab answers three questions:** am I training consistently
+  (workouts + weekly streak), did I set records (recent PRs), and is each lift
+  getting stronger (strength change over the range, with a sparkline).
 - **Charts** (`components/charts/`) are small custom SVG components following
-  the project's dataviz rules: one series per chart in a contrast-validated
-  color, 2px lines with ringed markers, ≤24px columns with rounded tops, solid
-  hairline gridlines, and a **fixed readout** that shows the latest value and
-  follows your finger as you drag across the chart. Every chart has a
-  **"Show data" table** so no value is only reachable by touch. See ADR 0006.
+  the project's dataviz rules: one series in a contrast-validated color, 2px
+  lines with ringed markers, solid hairline gridlines, and a readout that
+  follows your finger as you drag across the chart. Each lift's chart sits
+  above a list of its sessions, so no value is only reachable by touch. See ADR 0006.
 - While a new range loads, the previous charts stay on screen, dimmed
   (`keepPreviousData`), so there's no flash or layout jump.
 - **Personal records** come from the server after a workout uploads. The

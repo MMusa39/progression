@@ -31,12 +31,29 @@ type LineChartProps = {
   /** Optional extra tooltip text for a point, e.g. "185 × 5". */
   formatDetail?: (index: number) => string | undefined;
   accessibilityLabel: string;
+  /**
+   * Show the latest point in the readout when nothing is touched. Turn off when
+   * the screen already shows the latest value prominently, to avoid repeating it.
+   */
+  restingReadout?: boolean;
 };
 
-const PAD = { top: 60, right: 14, bottom: 26 };
+const PAD = { right: 14, bottom: 26 };
+/** Space above the plot for the readout row (or just breathing room when it only appears on touch). */
+const PAD_TOP = { withReadout: 60, touchOnly: 20 };
 const MARKER_LIMIT = 24; // beyond this many points, per-point markers turn into clutter
 
-export function LineChart({ data, height = 240, formatValue, formatAxis = formatValue, formatX, formatDetail, accessibilityLabel }: LineChartProps) {
+export function LineChart({
+  data,
+  height = 240,
+  formatValue,
+  formatAxis = formatValue,
+  formatX,
+  formatDetail,
+  accessibilityLabel,
+  restingReadout = true,
+}: LineChartProps) {
+  const padTop = restingReadout ? PAD_TOP.withReadout : PAD_TOP.touchOnly;
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
 
@@ -47,7 +64,7 @@ export function LineChart({ data, height = 240, formatValue, formatAxis = format
   const padLeft = Math.max(...tickLabels.map((l) => l.length)) * 6.5 + 12;
 
   const x = linearScale([data[0]?.x ?? 0, data[data.length - 1]?.x ?? 0], [padLeft, Math.max(padLeft, width - PAD.right)]);
-  const y = linearScale([ticks[0], ticks[ticks.length - 1]], [height - PAD.bottom, PAD.top]);
+  const y = linearScale([ticks[0], ticks[ticks.length - 1]], [height - PAD.bottom, padTop]);
   const positions = data.map((p) => x(p.x));
   const { active, responderProps } = useChartScrub(positions);
   if (data.length === 0) return null;
@@ -77,7 +94,7 @@ export function LineChart({ data, height = 240, formatValue, formatAxis = format
           <Path d={line} stroke={colors.chart} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" fill="none" />
 
           {active !== null && (
-            <Line x1={positions[active]} x2={positions[active]} y1={PAD.top - 8} y2={baseline} stroke={colors.textTertiary} strokeWidth={1} />
+            <Line x1={positions[active]} x2={positions[active]} y1={padTop - 8} y2={baseline} stroke={colors.textTertiary} strokeWidth={1} />
           )}
           {data.map((p, i) =>
             showAllMarkers || i === data.length - 1 || i === active ? (
@@ -111,9 +128,10 @@ export function LineChart({ data, height = 240, formatValue, formatAxis = format
         </>
       )}
       <View style={StyleSheet.absoluteFill} {...responderProps} />
-      {width > 0 && (
+      {width > 0 && (restingReadout || active !== null) && (
         <ChartReadout
           left={padLeft}
+          overlay={!restingReadout}
           selected={active !== null}
           value={formatValue((active !== null ? data[active] : last).y)}
           label={formatX((active !== null ? data[active] : last).x)}

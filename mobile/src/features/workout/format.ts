@@ -14,18 +14,6 @@ export function kgTo(unit: WeightUnit, kg: number): number {
   return unit === 'KG' ? kg : kg / KG_PER_LB;
 }
 
-/** Total volume in the user's unit, e.g. "12,340 lb". */
-export function formatVolume(kg: number, unit: WeightUnit): string {
-  return `${Math.round(kgTo(unit, kg)).toLocaleString()} ${unitLabel(unit)}`;
-}
-
-/** Compact volume for tiles: "24.4K lb". */
-export function formatVolumeCompact(kg: number, unit: WeightUnit): string {
-  const value = kgTo(unit, kg);
-  const compact = value >= 1000 ? `${Number((value / 1000).toFixed(value >= 100_000 ? 0 : 1))}K` : String(Math.round(value));
-  return `${compact} ${unitLabel(unit)}`;
-}
-
 /** "185 × 8", or "8 reps" for bodyweight sets. */
 export function formatSet(weight: number, reps: number, unit?: WeightUnit): string {
   if (weight === 0) return `${reps} reps`;
