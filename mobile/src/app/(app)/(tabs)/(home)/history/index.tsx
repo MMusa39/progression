@@ -1,5 +1,5 @@
 /** Workout history: infinite list, newest first, pull to refresh. */
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, Text } from '@/components/ui';
@@ -18,7 +18,9 @@ export default function HistoryScreen() {
   }
 
   return (
-    <FlatList
+    <>
+      <Stack.Screen options={{ title: 'History' }} />
+      <FlatList
       data={workouts}
       keyExtractor={(item) => item.id}
       contentInsetAdjustmentBehavior="automatic"
@@ -58,6 +60,7 @@ export default function HistoryScreen() {
         ) : undefined
       }
     />
+    </>
   );
 }
 

@@ -93,7 +93,10 @@ export default function WorkoutHomeScreen() {
 
       {recent.length > 0 && (
         <View style={styles.section}>
-          <Text variant="title2">Recent</Text>
+          <View style={styles.sectionHeader}>
+            <Text variant="title2">Recent</Text>
+            <Button title="See all" variant="ghost" size="sm" fullWidth={false} onPress={() => router.push('/history')} />
+          </View>
           {recent.map((workout) => (
             <WorkoutSummaryCard
               key={workout.id}
@@ -123,4 +126,5 @@ const styles = StyleSheet.create({
   startCard: { gap: space.sm, padding: space.xl },
   startIcon: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   section: { gap: space.md, marginTop: space.sm },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });
