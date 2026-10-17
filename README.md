@@ -52,6 +52,7 @@ answer those questions for you.
 | Recipes | Build a recipe from ingredients, log servings in one tap, and share it with friends, who can save their own copy. |
 | Calorie & macro targets | From sex, age, height, weight, goal weight, timeline and activity, with safe-pace limits, and adaptive maintenance that learns from what you log and how your weight responds. Or enter your own macros (e.g. from a coach). Everything lives on one **My Plan** screen. |
 | Nutrition trends | How consistently you hit calories, protein, carbs and fat: "18 of 26 days on target", a bar per day against your target zone, weekly averages, and your logging streak. |
+| Gym helpers | Notes per exercise that carry over to next time ("Seat at 4"), a plate calculator for barbell lifts, and a weekly workout goal on the Workout tab. |
 | Progressive overload | "Today: 190 lb × 6": hit the top of your rep range on every set and it suggests adding weight, otherwise one more rep. The suggestion pre-fills the set, so following it is one tap. |
 | Works offline | Gyms have bad signal: workouts save on the phone as you log and sync when you're back online. |
 | Your data | Export everything as JSON, or delete your account and all data, from the app. |
@@ -65,7 +66,7 @@ answer those questions for you.
 | Database | PostgreSQL 18, Flyway migrations |
 | Auth | Amazon Cognito: email, phone, or Google sign-in (JWT access tokens) |
 | Infrastructure | AWS CDK (Java): ECS Fargate (ARM64), RDS PostgreSQL, internal ALB behind CloudFront, Cognito |
-| Quality | JUnit 5, Testcontainers, CDK assertions, Jest, ESLint, GitHub Actions CI |
+| Quality | JUnit 5, Testcontainers, CDK assertions, Jest, Playwright (web E2E smoke test), ESLint, GitHub Actions CI |
 
 ## Repository layout
 
@@ -86,6 +87,7 @@ progression/
 - [Mobile README](mobile/README.md): running the app on your phone, structure, how auth and logging work
 - [Infrastructure README](infra/README.md): deploying Cognito, Google and SMS setup, costs
 - [Development setup](docs/development-setup.md): tools to install and how to run everything locally
+- [Testing](docs/testing.md): what's tested automatically, by hand, and what still needs a real iPhone
 - [Release checklist](docs/release.md): what's done and the steps to ship to the App Store
 - [Roadmap](docs/roadmap.md): delivery phases and progress
 - [Architecture Decision Records](docs/adr/): why key technical choices were made

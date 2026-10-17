@@ -14,6 +14,12 @@ how long it takes and what it costs.
 - [x] Production API: container image, rate limits, JSON logs, graceful shutdown; no dev-token or Swagger endpoints in `prod`
 - [x] Infrastructure as code: `Progression-Auth`, `Progression-Data`, `Progression-Api` (see `infra/README.md`)
 - [x] CI: backend tests + image build, infrastructure tests + synth, mobile lint/typecheck/tests
+- [x] Web end-to-end smoke test: 26/26 flows pass (`npm run e2e:web`). See [testing.md](testing.md)
+
+**Before submitting:** run the on-device checklist in [testing.md](testing.md#not-yet-verified-needs-a-real-iphone-andor-the-deployed-backend).
+Sign-in with real Cognito accounts, camera scanning, push, the share sheet and
+account deletion against AWS can only be verified on a phone with the backend
+deployed.
 
 ## 1. Deploy the backend (AWS, ~1 hour, ~$35/month)
 

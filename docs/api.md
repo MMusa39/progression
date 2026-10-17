@@ -53,7 +53,7 @@ This page is the human-oriented overview; the OpenAPI spec is the exact contract
 | --- | --- | --- |
 | `GET` | `/exercises?query=bench` | Built-in catalog plus the user's custom exercises, optionally filtered by name. |
 | `POST` | `/exercises` | Create a custom exercise. |
-| `GET` | `/exercises/{id}/last-performance?excludeWorkoutId=` | Sets from the most recent workout that included this exercise. Powers the "Last time" hint. Pass the in-progress workout as `excludeWorkoutId`. `204 No Content` if never performed. |
+| `GET` | `/exercises/{id}/last-performance?excludeWorkoutId=` | Sets and the exercise `notes` from the most recent workout that included this exercise. Powers the "Last time" hint, overload suggestions and sticky notes. Pass the in-progress workout as `excludeWorkoutId`. `204 No Content` if never performed. |
 
 ### Workouts
 

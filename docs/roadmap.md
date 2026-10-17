@@ -48,6 +48,7 @@ merged with tests and documentation.
 - [x] Rest timer: auto-starts on each completed set, ±15s / skip, haptic at the end, default length in Profile
 - [x] Rest-over notification while the app is in the background (local notification)
 - [x] Progressive-overload hints (double progression), pre-filling the set suggestions
+- [x] Sticky exercise notes, plate calculator, weekly workout goal
 
 ## Phase 5b: Friends
 - [x] Usernames, mutual friend requests, invite links/codes (V4 migration)
