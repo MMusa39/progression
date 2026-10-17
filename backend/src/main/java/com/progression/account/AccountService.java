@@ -25,8 +25,8 @@ public class AccountService {
 
 	/**
 	 * Permanently deletes the user and everything they own. Every user table
-	 * references {@code app_user} with {@code ON DELETE CASCADE}. Recipes and
-	 * workouts go first: they reference the user's custom foods and exercises,
+	 * references {@code app_user} with {@code ON DELETE CASCADE}. Recipes,
+	 * routines and workouts go first: they reference the user's custom foods and exercises,
 	 * and PostgreSQL checks those references as each cascaded row is deleted, so
 	 * the order within a single cascading statement isn't guaranteed to work.
 	 * Friends' saved copies of shared recipes are theirs and stay.
@@ -34,6 +34,7 @@ public class AccountService {
 	@Transactional
 	public void delete(UUID userId) {
 		jdbc.sql("DELETE FROM recipe WHERE owner_id = :id").param("id", userId).update();
+		jdbc.sql("DELETE FROM routine WHERE user_id = :id").param("id", userId).update();
 		jdbc.sql("DELETE FROM workout WHERE user_id = :id").param("id", userId).update();
 		int rows = jdbc.sql("DELETE FROM app_user WHERE id = :id").param("id", userId).update();
 		if (rows > 0) {
@@ -72,6 +73,15 @@ public class AccountService {
 			        FROM workout_exercise we JOIN exercise e ON e.id = we.exercise_id WHERE we.workout_id = w.id)
 			    ) ORDER BY w.started_at)
 			    FROM workout w WHERE w.user_id = :id), '[]'::jsonb),
+			  'routines', coalesce((
+			    SELECT jsonb_agg(jsonb_build_object(
+			      'name', r.name, 'notes', r.notes,
+			      'exercises', (
+			        SELECT coalesce(jsonb_agg(jsonb_build_object(
+			          'exercise', e.name, 'sets', re.sets, 'repMin', re.rep_min, 'repMax', re.rep_max) ORDER BY re.position), '[]'::jsonb)
+			        FROM routine_exercise re JOIN exercise e ON e.id = re.exercise_id WHERE re.routine_id = r.id)
+			    ) ORDER BY r.name)
+			    FROM routine r WHERE r.user_id = :id), '[]'::jsonb),
 			  'customExercises', coalesce((
 			    SELECT jsonb_agg(jsonb_build_object('name', name, 'muscleGroup', muscle_group, 'equipment', equipment) ORDER BY name)
 			    FROM exercise WHERE owner_id = :id), '[]'::jsonb),
