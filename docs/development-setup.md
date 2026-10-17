@@ -55,6 +55,18 @@ export TESTCONTAINERS_RYUK_DISABLED=true
 
 ## 2. Running locally
 
+**The quick way:** `scripts/start.sh` starts Docker if needed, then the API and
+database in the background, waits until the API is healthy, and runs Expo
+(scan the QR code with your iPhone). `scripts/stop.sh` stops all of it; your
+data is kept. With these aliases in `~/.zshrc` you just type `start` and `end`:
+
+```bash
+alias start="$HOME/Documents/Projects/progression/scripts/start.sh"
+alias end="$HOME/Documents/Projects/progression/scripts/stop.sh"
+```
+
+The sections below run each piece by hand.
+
 ### Backend
 
 ```bash
