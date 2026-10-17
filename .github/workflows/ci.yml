@@ -32,6 +32,8 @@ jobs:
         with:
           name: backend-test-report
           path: backend/build/reports/tests/test
+      # The production image must keep building (the deploy workflow pushes this same Dockerfile).
+      - run: docker build -t progression-api:ci .
 
   infra:
     name: Infrastructure (CDK)

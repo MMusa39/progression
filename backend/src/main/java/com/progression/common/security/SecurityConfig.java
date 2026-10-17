@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.progression.common.ratelimit.RateLimitFilter;
+import com.progression.common.ratelimit.RateLimitProperties;
+import com.progression.common.ratelimit.RateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +26,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -58,7 +62,12 @@ public class SecurityConfig {
 
 	@Bean
 	SecurityFilterChain apiSecurity(HttpSecurity http,
-			AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver) throws Exception {
+			AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver,
+			RateLimitProperties rateLimits) throws Exception {
+		if (rateLimits.enabled()) {
+			// After authentication, so limits are per user rather than per shared IP.
+			http.addFilterAfter(new RateLimitFilter(new RateLimiter(), rateLimits), BearerTokenAuthenticationFilter.class);
+		}
 		http
 				// Uses a CorsConfigurationSource bean if one exists (local profile only, see LocalCorsConfig).
 				.cors(Customizer.withDefaults())

@@ -22,6 +22,13 @@ spring:
     problemdetails:
       # Return RFC 9457 application/problem+json for framework-level errors too.
       enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  datasource:
+    hikari:
+      # Small and steady: a t4g.micro database allows ~80 connections in total.
+      maximum-pool-size: 10
+      minimum-idle: 2
   docker:
     compose:
       # Leave the database running when the app stops, so restarts are fast.
@@ -30,6 +37,10 @@ spring:
 server:
   error:
     include-stacktrace: never
+  # Finish in-flight requests before stopping (rolling deploys), then give up after 20s.
+  shutdown: graceful
+  # Behind the load balancer: trust X-Forwarded-* for the client IP and scheme.
+  forward-headers-strategy: native
 
 management:
   endpoints:
@@ -40,6 +51,8 @@ management:
     health:
       probes:
         enabled: true
+      # The load balancer only needs UP/DOWN; component details stay private.
+      show-details: never
 
 springdoc:
   swagger-ui:

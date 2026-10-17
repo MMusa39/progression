@@ -1,6 +1,9 @@
 # Local development profile (activated automatically by `./gradlew bootRun`).
 # The database connection comes from compose.yaml via spring-boot-docker-compose.
 progression:
+  # The seed script makes hundreds of requests a minute.
+  rate-limit:
+    enabled: false
   security:
     # HMAC secret for development tokens minted by POST /dev/token.
     # Never used outside local/test: production verifies Cognito-signed tokens instead.

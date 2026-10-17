@@ -18,3 +18,10 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+# One JSON object per log line (Elastic Common Schema), which CloudWatch Logs
+# Insights can query by field.
+logging:
+  structured:
+    format:
+      console: ecs
