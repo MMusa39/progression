@@ -82,10 +82,13 @@ export default function WorkoutHomeScreen() {
         <View style={styles.section}>
           <Text variant="title2">Recent</Text>
           {recent.map((workout) => (
-            <View key={workout.id} style={styles.recentItem}>
-              <WorkoutSummaryCard workout={workout} unit={unit} onPress={() => router.push(`/history/${workout.id}`)} />
-              <Button title="Repeat" icon="repeat" size="sm" variant="secondary" fullWidth={false} onPress={() => repeat(workout.id)} style={styles.repeat} />
-            </View>
+            <WorkoutSummaryCard
+              key={workout.id}
+              workout={workout}
+              unit={unit}
+              onPress={() => router.push(`/history/${workout.id}`)}
+              action={<Button title="Repeat" icon="repeat" size="sm" variant="secondary" fullWidth={false} onPress={() => repeat(workout.id)} />}
+            />
           ))}
         </View>
       )}
@@ -108,6 +111,4 @@ const styles = StyleSheet.create({
   startCard: { gap: space.sm, padding: space.xl },
   startIcon: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   section: { gap: space.md, marginTop: space.sm },
-  recentItem: { position: 'relative' },
-  repeat: { position: 'absolute', right: space.lg, bottom: space.lg },
 });

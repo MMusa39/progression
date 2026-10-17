@@ -3,7 +3,7 @@
  * Material bottom navigation on Android), so it gets system behavior like
  * Liquid Glass on iOS 26 for free. Each tab owns its own navigation stack.
  */
-import { NativeTabs } from 'expo-router/native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { useTheme } from '@/theme/useTheme';
 

@@ -47,7 +47,7 @@ answer those questions for you.
 
 | Layer | Technology |
 | --- | --- |
-| Mobile | React Native, Expo SDK 58, TypeScript, Expo Router, TanStack Query, zustand |
+| Mobile | React Native, Expo SDK 57, TypeScript, Expo Router, TanStack Query, zustand |
 | Backend | Java 25, Spring Boot 4, Spring Data JPA, Spring Security |
 | Database | PostgreSQL 18, Flyway migrations |
 | Auth | Amazon Cognito: email, phone, or Google sign-in (JWT access tokens) |

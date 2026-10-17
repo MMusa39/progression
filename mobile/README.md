@@ -1,11 +1,14 @@
 # Progression mobile app
 
-React Native app (Expo SDK 58, TypeScript) for logging workouts and seeing how
+React Native app (Expo SDK 57, TypeScript) for logging workouts and seeing how
 your lifts progress.
 
 ## Run it on your iPhone
 
-1. Install **Expo Go** from the App Store.
+1. Install **Expo Go** from the App Store. The project targets the Expo SDK that
+   the App Store's Expo Go supports (currently **SDK 57**). If Expo Go says the
+   project needs a newer version, the SDKs are out of sync, so check
+   `"expo"` in `package.json` against the SDK your Expo Go lists.
 2. Start the API (`cd ../backend && ./gradlew bootRun`). The app talks to it
    over your Wi-Fi.
 3. Start the app:

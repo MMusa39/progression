@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { radius, space, typography } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -21,7 +21,7 @@ type CodeInputProps = {
  */
 export function CodeInput({ value, onChange, length = 6, autoFocus = true, hasError = false }: CodeInputProps) {
   const { colors } = useTheme();
-  const input = useRef<TextInputInstance>(null);
+  const input = useRef<TextInput>(null);
   const [focused, setFocused] = useState(autoFocus);
 
   return (

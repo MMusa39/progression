@@ -19,7 +19,7 @@ merged with tests and documentation.
 - [x] JWT resource server with local dev tokens (pulled forward from Phase 4)
 
 ## Phase 2: Mobile core
-- [x] Expo SDK 58 app with TypeScript, Expo Router, native tabs, design tokens (dark-first + light mode)
+- [x] Expo SDK 57 app with TypeScript, Expo Router, native tabs, design tokens (dark-first + light mode)
 - [x] Workout logging screen: add exercises, add/edit/complete sets, set types, PREVIOUS column, one-tap suggestions
 - [x] Exercise picker with search, muscle filters, multi-select, custom exercises
 - [x] History list (infinite scroll), workout detail, repeat workout, delete

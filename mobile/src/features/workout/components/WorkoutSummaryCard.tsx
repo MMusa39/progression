@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Card, Icon, Text } from '@/components/ui';
@@ -7,7 +8,18 @@ import { space } from '@/theme/tokens';
 import { formatDuration, formatVolume, formatWorkoutDate } from '../format';
 
 /** History list item: date, name, headline stats and a preview of the exercises. */
-export function WorkoutSummaryCard({ workout, unit, onPress }: { workout: WorkoutSummary; unit: WeightUnit; onPress: () => void }) {
+export function WorkoutSummaryCard({
+  workout,
+  unit,
+  onPress,
+  action,
+}: {
+  workout: WorkoutSummary;
+  unit: WeightUnit;
+  onPress: () => void;
+  /** Optional trailing button (e.g. "Repeat"), laid out beside the exercise preview. */
+  action?: ReactNode;
+}) {
   const duration = formatDuration(workout.startedAt, workout.endedAt);
   const preview =
     workout.exerciseNames.slice(0, 3).join(' · ') +
@@ -27,11 +39,14 @@ export function WorkoutSummaryCard({ workout, unit, onPress }: { workout: Workou
         <Stat icon="layers-outline" text={`${workout.setCount} sets`} />
         <Stat icon="barbell-outline" text={formatVolume(workout.totalVolumeKg, unit)} />
       </View>
-      {preview ? (
-        <Text variant="footnote" color="textSecondary" numberOfLines={1}>
-          {preview}
-        </Text>
-      ) : null}
+      {(preview || action) && (
+        <View style={styles.footer}>
+          <Text variant="footnote" color="textSecondary" numberOfLines={1} style={styles.preview}>
+            {preview}
+          </Text>
+          {action}
+        </View>
+      )}
     </Card>
   );
 }
@@ -51,4 +66,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stats: { flexDirection: 'row', gap: space.lg, flexWrap: 'wrap' },
   stat: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  footer: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  preview: { flex: 1 },
 });

@@ -1,5 +1,5 @@
 import { forwardRef, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { hitTarget, radius, space, typography } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -19,7 +19,7 @@ export type TextFieldProps = TextInputProps & {
  * Labeled text input with error and hint text. Password fields
  * (`secureTextEntry`) get a show/hide toggle.
  */
-export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function TextField(
+export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
   { label, error, hint, prefix, secureTextEntry, style, onFocus, onBlur, ...rest },
   ref,
 ) {

@@ -1,7 +1,7 @@
 /** Sign in with email/phone + password, or Google. */
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { View, type TextInputInstance } from 'react-native';
+import { View, type TextInput } from 'react-native';
 
 import { Button, Divider, Screen, Text, TextField } from '@/components/ui';
 import { env } from '@/config/env';
@@ -20,7 +20,7 @@ export default function SignInScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const passwordInput = useRef<TextInputInstance>(null);
+  const passwordInput = useRef<TextInput>(null);
 
   const submit = async () => {
     setSubmitted(true);
