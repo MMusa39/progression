@@ -8,7 +8,17 @@ command. See [ADR 0004](../docs/adr/0004-local-first-aws-later.md) and
 | Stack | What it creates | Status |
 | --- | --- | --- |
 | `Progression-Auth` | Cognito user pool (email/phone sign-in), Google identity provider, mobile app client, OAuth domain | Ready to deploy |
-| `Progression-Network` / `-Database` / `-Service` | VPC, RDS PostgreSQL, ECS Fargate API behind a load balancer | Phase 7 |
+| `Progression-Data` | VPC (no NAT gateway), RDS PostgreSQL 18 (db.t4g.micro, encrypted, private, deletion-protected) | Ready to deploy |
+| `Progression-Api` | API container on ECS Fargate (ARM64), internal load balancer, CloudFront (HTTPS) | Ready to deploy |
+
+```
+phone ──HTTPS──▶ CloudFront ──(VPC origin, private)──▶ internal ALB ──▶ Fargate task ──▶ RDS (isolated subnets)
+                                                                          └──▶ Cognito keys, Open Food Facts, Expo push
+```
+
+The only way into the system from the internet is HTTPS through CloudFront: the
+load balancer has no public address, the tasks accept traffic only from the load
+balancer, and the database has no route to the internet at all.
 
 ## Commands
 
@@ -106,6 +116,41 @@ on new accounts:
 Until then, phone sign-up returns "couldn't send the verification code". Email
 and Google work regardless.
 
+## Deploying the API
+
+Prerequisites: authentication is deployed (above), Docker is running (Colima),
+and the CDK bootstrap has been done once per account/region (`cdk bootstrap`).
+
+```bash
+cd infra
+cdk deploy Progression-Data       # VPC + database (~10 minutes the first time)
+cdk deploy Progression-Api        # builds backend/Dockerfile for ARM64, pushes it, starts the service
+```
+
+The `Progression-Api` output **ApiUrl** (e.g. `https://d1234abcd.cloudfront.net`)
+is the address the app needs. Set it for production builds:
+
+```bash
+cd mobile
+eas env:create --environment production --name EXPO_PUBLIC_API_URL --value https://d1234abcd.cloudfront.net
+```
+
+Redeploying after backend changes is the same `cdk deploy Progression-Api`:
+CDK rebuilds the image, and ECS rolls it out with zero downtime (new task
+healthy first, then the old one drains), rolling back automatically if the new
+version fails its health checks.
+
+Optional context:
+
+| Context | Effect |
+| --- | --- |
+| `-c apiDomain=api.example.com -c apiCertificateArn=arn:aws:acm:us-east-1:…` | Serve the API on your own domain (certificate in us-east-1) |
+| `-c apiTasks=2` | Run two API containers |
+
+**Logs**: CloudWatch log group from the `LogGroupName` output. Logs are JSON,
+so CloudWatch Logs Insights can filter by field, e.g.
+`fields @timestamp, log.level, message | filter log.level = "ERROR"`.
+
 ## Costs
 
 | Resource | Cost |
@@ -113,8 +158,24 @@ and Google work regardless.
 | Cognito (Essentials tier) | Free up to 10,000 monthly active users |
 | Secrets Manager (Google secret) | ~$0.40/month |
 | SMS (optional) | Toll-free number ~$2/month + ~$0.01 per message (US) |
+| Fargate, 0.5 vCPU / 1 GB ARM64, 1 task | ~$14/month |
+| Application Load Balancer | ~$17/month |
+| RDS db.t4g.micro + 20 GB gp3 | ~$14/month (free for the first 12 months on a new account) |
+| Public IPv4 address (the task) | ~$3.60/month |
+| CloudFront, Secrets Manager, CloudWatch Logs, ECR | ~$1–2/month at small scale (CloudFront's free tier covers 10M requests) |
+| **Total (API running)** | **~$35/month with the RDS free tier, ~$50/month after** |
+
+Scale-to-zero isn't possible with this design (the load balancer and database
+bill hourly), which is the trade-off for a conventional, production-shaped
+setup. Pausing it costs nothing to set up again: see Teardown.
 
 ## Teardown
+
+`cdk destroy Progression-Api` stops all API costs (about $35 of the total) and
+can be redeployed any time. `Progression-Data` has deletion protection on the
+database: to delete it, turn protection off in the RDS console, then
+`cdk destroy Progression-Data` (a final snapshot is kept, which costs a little
+per GB until you delete it).
 
 `cdk destroy Progression-Auth` removes everything **except the user pool**,
 which has `RemovalPolicy.RETAIN` so a mistaken destroy can't delete every

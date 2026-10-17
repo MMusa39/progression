@@ -19,7 +19,13 @@ import software.amazon.awscdk.StackProps;
  *   <li>{@code devCallbackUrls}: comma-separated extra OAuth redirect URLs for development,
  *       e.g. the Expo Go URL {@code exp://192.168.1.20:8081/--/auth}.</li>
  *   <li>{@code authDomainPrefix}: prefix of the Cognito hosted domain. Must be globally unique.</li>
+ *   <li>{@code apiDomain} + {@code apiCertificateArn}: optional custom domain for the API
+ *       (the certificate must be in us-east-1, as CloudFront requires).</li>
+ *   <li>{@code apiTasks}: number of API containers (default 1).</li>
  * </ul>
+ *
+ * <p>Stacks: {@code Progression-Auth} (Cognito), {@code Progression-Data} (VPC +
+ * PostgreSQL), {@code Progression-Api} (Fargate + load balancer + CloudFront).
  */
 public final class ProgressionInfraApp {
 
@@ -32,9 +38,21 @@ public final class ProgressionInfraApp {
 				.region(System.getenv("CDK_DEFAULT_REGION"))
 				.build();
 
-		new AuthStack(app, "Progression-Auth", StackProps.builder().env(env).build(), authConfig(app, env));
+		StackProps props = StackProps.builder().env(env).build();
+		AuthStack auth = new AuthStack(app, "Progression-Auth", props, authConfig(app, env));
+		DataStack data = new DataStack(app, "Progression-Data", props);
+		new ApiStack(app, "Progression-Api", props, apiConfig(app, auth, data));
 
 		app.synth();
+	}
+
+	static ApiStack.Config apiConfig(App app, AuthStack auth, DataStack data) {
+		String domain = (String) app.getNode().tryGetContext("apiDomain");
+		String certificate = (String) app.getNode().tryGetContext("apiCertificateArn");
+		Object tasks = app.getNode().tryGetContext("apiTasks");
+		int desiredCount = tasks == null ? 1 : Integer.parseInt(tasks.toString());
+		return new ApiStack.Config(data.getVpc(), data.getDatabase(), auth.getUserPool(), auth.getMobileClient(),
+				domain, certificate, desiredCount);
 	}
 
 	static AuthStack.Config authConfig(App app, Environment env) {
