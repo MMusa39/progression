@@ -83,6 +83,24 @@ public class FoodController {
 		return recipes.list(me.id());
 	}
 
+	@GetMapping("/recipes/shared")
+	@Operation(summary = "Recipes your friends have shared with you")
+	public List<RecipeService.RecipeResponse> sharedRecipes(CurrentUser me) {
+		return recipes.sharedWithMe(me.id());
+	}
+
+	@GetMapping("/recipes/shared/{id}")
+	public RecipeService.RecipeResponse sharedRecipe(CurrentUser me, @PathVariable UUID id) {
+		return recipes.getShared(me.id(), id);
+	}
+
+	@PostMapping("/recipes/shared/{id}/copy")
+	@Operation(summary = "Save your own copy of a friend's shared recipe (idempotent per recipe)")
+	public RecipeService.RecipeResponse copySharedRecipe(CurrentUser me, @PathVariable UUID id,
+			@Validated @RequestBody RecipeService.CopyRequest request) {
+		return recipes.copy(me.id(), id, request.id());
+	}
+
 	@GetMapping("/recipes/{id}")
 	public RecipeService.RecipeResponse recipe(CurrentUser me, @PathVariable UUID id) {
 		return recipes.get(me.id(), id);

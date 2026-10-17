@@ -59,15 +59,19 @@ src/main/java/com/progression/
 ├── workout/                          workout aggregate, idempotent upsert, history, last performance
 ├── stats/                            progress analytics: summary, progression, records (JdbcClient + SQL)
 ├── social/                           friends, invites, privacy checks, leaderboards
-└── notification/                     device tokens, event listeners, Expo push sender
+├── notification/                     device tokens, event listeners, Expo push sender
+├── body/                             weigh-ins and the smoothed trend (WeightTrend)
+├── nutrition/                        goal profile, TargetCalculator (BMR, pace caps, macros), adaptive maintenance
+└── food/                             Open Food Facts client + cache, custom foods, recipes (and sharing), diary, water
 
 src/main/resources/
 ├── application.yml                   shared config
 ├── application-local.yml             local dev (dev JWT secret, debug logging)
 ├── application-prod.yml              AWS (everything from environment variables)
-└── db/migration/                     Flyway migrations (V1 schema, V2 exercise catalog, V3 stats view + e1RM function)
+└── db/migration/                     Flyway migrations: V1 schema, V2 exercise catalog, V3 stats view + e1RM, V4 friends,
+                                      V5 push tokens, V6 body weight, V7 nutrition, V8 shared recipes
 
-scripts/seed_dev_data.py               fills the local API with 16 weeks of realistic training data
+scripts/seed_dev_data.py               fills the local API with 16 weeks of training, 6 weeks of weigh-ins and 4 weeks of food
 ```
 
 Each feature has the same layers:
