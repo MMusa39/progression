@@ -7,6 +7,7 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
+import { OfflineBanner } from '@/components/ui';
 import { useExercises, useMe } from '@/features/api/queries';
 import { configureNotificationHandler, registerForPush } from '@/features/notifications/notifications';
 import { useNotificationTaps } from '@/features/notifications/useNotificationTaps';
@@ -23,26 +24,29 @@ export default function AppLayout() {
   useExercises();
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-      <Stack.Screen name="(tabs)" />
-      {/* Active workout: a full-height sheet that can be swiped down and resumed later. */}
-      <Stack.Screen name="workout" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="workout-complete" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="invite/[code]" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="weigh-in" options={{ presentation: 'modal' }} />
-      <Stack.Screen
-        name="exercise-picker"
-        options={{
-          presentation: 'modal',
-          headerShown: true,
-          title: 'Add Exercises',
-          headerTintColor: colors.accentText,
-          headerTitleStyle: { color: colors.text },
-          headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
-        }}
-      />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+        <Stack.Screen name="(tabs)" />
+        {/* Active workout: a full-height sheet that can be swiped down and resumed later. */}
+        <Stack.Screen name="workout" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="workout-complete" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="invite/[code]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="weigh-in" options={{ presentation: 'modal' }} />
+        <Stack.Screen
+          name="exercise-picker"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Add Exercises',
+            headerTintColor: colors.accentText,
+            headerTitleStyle: { color: colors.text },
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+          }}
+        />
+      </Stack>
+      <OfflineBanner />
+    </>
   );
 }
 

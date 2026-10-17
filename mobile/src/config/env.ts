@@ -17,6 +17,8 @@ import Constants from 'expo-constants';
 function resolveApiUrl(): string {
   const explicit = process.env.EXPO_PUBLIC_API_URL;
   if (explicit) return explicit.replace(/\/$/, '');
+  // A release build must be told where the API is; guessing from Metro only works in development.
+  if (!__DEV__) return '';
 
   const metroHost = Constants.expoConfig?.hostUri?.split(':')[0];
   return `http://${metroHost ?? 'localhost'}:8080`;
@@ -26,8 +28,13 @@ const cognitoRegion = process.env.EXPO_PUBLIC_COGNITO_REGION;
 const cognitoClientId = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.EXPO_PUBLIC_COGNITO_DOMAIN?.replace(/\/$/, '');
 
+const apiUrl = resolveApiUrl();
+
 export const env = {
-  apiUrl: resolveApiUrl(),
+  apiUrl,
+
+  /** Set when a release build is missing required configuration; the app shows it instead of failing obscurely. */
+  configError: apiUrl ? null : 'This build has no API address (EXPO_PUBLIC_API_URL).',
 
   /** Amazon Cognito user pool settings: outputs of `cdk deploy Progression-Auth`. */
   cognito: {

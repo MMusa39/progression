@@ -1,4 +1,6 @@
-import { QueryClient } from '@tanstack/react-query';
+import { focusManager, onlineManager, QueryClient } from '@tanstack/react-query';
+import * as Network from 'expo-network';
+import { AppState, Platform } from 'react-native';
 
 import { ApiError } from '@/features/api/client';
 
@@ -11,3 +13,17 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+if (Platform.OS !== 'web') {
+  // Offline: pause queries and mutations instead of failing them, and resume when the
+  // connection returns (the gym basement problem).
+  onlineManager.setEventListener((setOnline) => {
+    const subscription = Network.addNetworkStateListener((state) => setOnline(state.isInternetReachable !== false));
+    return () => subscription.remove();
+  });
+  // Refetch stale data when the app comes back to the foreground.
+  focusManager.setEventListener((setFocused) => {
+    const subscription = AppState.addEventListener('change', (status) => setFocused(status === 'active'));
+    return () => subscription.remove();
+  });
+}

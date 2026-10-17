@@ -10,3 +10,4 @@ export { Text } from './Text';
 export { TextField } from './TextField';
 export { TabStack } from './TabStack';
 export { StatTile } from './StatTile';
+export { OfflineBanner } from './OfflineBanner';
