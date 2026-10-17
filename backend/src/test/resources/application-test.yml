@@ -1,0 +1,5 @@
+# Integration-test profile. The database comes from Testcontainers
+# (see TestcontainersConfiguration); tokens are signed with this test secret.
+progression:
+  security:
+    dev-jwt-secret: "test-secret-used-only-by-automated-tests-0123456789"

@@ -1,0 +1,16 @@
+# Local development profile (activated automatically by `./gradlew bootRun`).
+# The database connection comes from compose.yaml via spring-boot-docker-compose.
+progression:
+  security:
+    # HMAC secret for development tokens minted by POST /dev/token.
+    # Never used outside local/test: production verifies Cognito-signed tokens instead.
+    dev-jwt-secret: "local-development-secret-not-for-production-0123456789"
+    # Optionally also accept real Cognito tokens locally (values from `cdk deploy` outputs).
+    # Leave unset to use development tokens only.
+    cognito:
+      issuer-uri: ${COGNITO_ISSUER_URI:}
+      client-id: ${COGNITO_CLIENT_ID:}
+
+logging:
+  level:
+    com.progression: DEBUG

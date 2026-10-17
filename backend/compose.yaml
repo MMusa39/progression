@@ -1,0 +1,24 @@
+# Local PostgreSQL for development.
+#
+# You rarely need to run this by hand: `./gradlew bootRun` starts it automatically
+# (spring-boot-docker-compose) and points the app at it. To manage it yourself:
+#   docker compose up -d      # start
+#   docker compose down       # stop (data is kept in the named volume)
+#   docker compose down -v    # stop and delete all local data
+name: progression
+
+services:
+  postgres:
+    image: 'postgres:18-alpine'
+    environment:
+      POSTGRES_DB: progression
+      POSTGRES_USER: progression
+      POSTGRES_PASSWORD: progression
+    ports:
+      - '5432:5432'
+    volumes:
+      # PostgreSQL 18+ images keep their data under /var/lib/postgresql
+      - progression-pgdata:/var/lib/postgresql
+
+volumes:
+  progression-pgdata:

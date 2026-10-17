@@ -1,0 +1,46 @@
+# Settings shared by every environment. Profile-specific files
+# (application-local.yml, application-prod.yml) override these.
+spring:
+  application:
+    name: progression-api
+  threads:
+    virtual:
+      # Serve each request on a Java 21+ virtual thread: cheap blocking I/O without reactive code.
+      enabled: true
+  jpa:
+    # Don't keep DB sessions open during view rendering; all data access happens in services.
+    open-in-view: false
+    hibernate:
+      # Flyway owns the schema. Hibernate only checks that the entities match it.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        # Load lazy collections in batches (avoids N+1 queries when listing workouts).
+        default_batch_fetch_size: 50
+  mvc:
+    problemdetails:
+      # Return RFC 9457 application/problem+json for framework-level errors too.
+      enabled: true
+  docker:
+    compose:
+      # Leave the database running when the app stops, so restarts are fast.
+      lifecycle-management: start-only
+
+server:
+  error:
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

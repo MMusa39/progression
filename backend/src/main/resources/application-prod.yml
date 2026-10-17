@@ -1,0 +1,20 @@
+# Production profile (AWS). Every value comes from the environment, which the
+# ECS task definition fills in from Secrets Manager / CDK outputs.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+progression:
+  security:
+    cognito:
+      # e.g. https://cognito-idp.us-east-1.amazonaws.com/us-east-1_AbCdEf123
+      issuer-uri: ${COGNITO_ISSUER_URI}
+      client-id: ${COGNITO_CLIENT_ID}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
