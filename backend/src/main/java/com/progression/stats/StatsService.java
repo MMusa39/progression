@@ -113,12 +113,18 @@ public class StatsService {
 	 */
 	@Transactional(readOnly = true)
 	public List<PersonalRecordResponse> workoutRecords(CurrentUser user, UUID workoutId) {
-		Instant startedAt = stats.workoutStartedAt(user.id(), workoutId)
+		return workoutRecordsOf(user.id(), workoutId);
+	}
+
+	/** Same as {@link #workoutRecords} for any user id (used by notifications). */
+	@Transactional(readOnly = true)
+	public List<PersonalRecordResponse> workoutRecordsOf(UUID userId, UUID workoutId) {
+		Instant startedAt = stats.workoutStartedAt(userId, workoutId)
 				.orElseThrow(() -> new NotFoundException("Workout not found"));
 
-		Map<UUID, List<StatsRepository.WorkoutSet>> setsByExercise = stats.workoutSets(user.id(), workoutId).stream()
+		Map<UUID, List<StatsRepository.WorkoutSet>> setsByExercise = stats.workoutSets(userId, workoutId).stream()
 				.collect(Collectors.groupingBy(StatsRepository.WorkoutSet::exerciseId, LinkedHashMap::new, Collectors.toList()));
-		Map<UUID, StatsRepository.PreviousBest> previous = stats.previousBests(user.id(), workoutId, startedAt,
+		Map<UUID, StatsRepository.PreviousBest> previous = stats.previousBests(userId, workoutId, startedAt,
 				setsByExercise.keySet());
 
 		List<PersonalRecordResponse> records = new ArrayList<>();

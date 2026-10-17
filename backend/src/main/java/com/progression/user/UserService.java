@@ -65,6 +65,12 @@ public class UserService {
 		if (request.shareWorkouts() != null) {
 			user.setShareWorkouts(request.shareWorkouts());
 		}
+		if (request.notifyFriendRequests() != null) {
+			user.setNotifyFriendRequests(request.notifyFriendRequests());
+		}
+		if (request.notifyFriendPrs() != null) {
+			user.setNotifyFriendPrs(request.notifyFriendPrs());
+		}
 		if (request.username() != null) {
 			String username = normalizeUsername(request.username());
 			if (!USERNAME.matcher(username).matches()) {

@@ -48,6 +48,14 @@ public class AppUser {
 	/** Secret part of the user's invite link; {@code null} until first requested. */
 	private String inviteCode;
 
+	/** Push when someone sends or accepts a friend request. */
+	@Column(nullable = false)
+	private boolean notifyFriendRequests = true;
+
+	/** Push when a friend sets a personal record. */
+	@Column(nullable = false)
+	private boolean notifyFriendPrs = true;
+
 	/** Required by JPA. Users are created with {@link AppUserRepository#insertIfAbsent}. */
 	protected AppUser() {
 	}
@@ -86,6 +94,30 @@ public class AppUser {
 
 	public String getInviteCode() {
 		return inviteCode;
+	}
+
+	public boolean isNotifyFriendRequests() {
+		return notifyFriendRequests;
+	}
+
+	public boolean isNotifyFriendPrs() {
+		return notifyFriendPrs;
+	}
+
+	void setNotifyFriendRequests(boolean notifyFriendRequests) {
+		this.notifyFriendRequests = notifyFriendRequests;
+	}
+
+	void setNotifyFriendPrs(boolean notifyFriendPrs) {
+		this.notifyFriendPrs = notifyFriendPrs;
+	}
+
+	/** Name to show other people: display name, else @username. */
+	public String publicName() {
+		if (displayName != null && !displayName.isBlank()) {
+			return displayName;
+		}
+		return username != null ? "@" + username : "A friend";
 	}
 
 	void setUsername(String username) {

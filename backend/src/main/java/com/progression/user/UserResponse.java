@@ -13,10 +13,13 @@ public record UserResponse(
 		String username,
 		WeightUnit weightUnit,
 		boolean shareWorkouts,
+		boolean notifyFriendRequests,
+		boolean notifyFriendPrs,
 		Instant createdAt) {
 
 	static UserResponse from(AppUser user) {
 		return new UserResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.getUsername(),
-				user.getWeightUnit(), user.isShareWorkouts(), user.getCreatedAt());
+				user.getWeightUnit(), user.isShareWorkouts(), user.isNotifyFriendRequests(), user.isNotifyFriendPrs(),
+				user.getCreatedAt());
 	}
 }

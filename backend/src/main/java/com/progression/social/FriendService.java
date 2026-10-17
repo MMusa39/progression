@@ -29,6 +29,7 @@ import com.progression.stats.Streaks;
 import com.progression.user.AppUser;
 import com.progression.user.CurrentUser;
 import com.progression.user.UserService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,12 +55,15 @@ public class FriendService {
 	private final FriendshipRepository friendships;
 	private final UserService users;
 	private final SocialStatsRepository socialStats;
+	private final ApplicationEventPublisher events;
 	private final Clock clock;
 
-	FriendService(FriendshipRepository friendships, UserService users, SocialStatsRepository socialStats, Clock clock) {
+	FriendService(FriendshipRepository friendships, UserService users, SocialStatsRepository socialStats,
+			ApplicationEventPublisher events, Clock clock) {
 		this.friendships = friendships;
 		this.users = users;
 		this.socialStats = socialStats;
+		this.events = events;
 		this.clock = clock;
 	}
 
@@ -94,10 +98,12 @@ public class FriendService {
 		Friendship friendship = friendships.findBetween(me.id(), target.getId()).orElse(null);
 		if (friendship == null) {
 			friendships.save(Friendship.request(me.id(), target.getId(), clock.instant()));
+			events.publishEvent(new FriendEvents.RequestSent(me.id(), target.getId()));
 			return new ConnectResponse(UserSummary.from(target), RelationshipStatus.REQUEST_SENT);
 		}
 		if (!friendship.isAccepted() && friendship.getAddresseeId().equals(me.id())) {
 			friendship.accept(clock.instant()); // they asked first: sending back means yes
+			events.publishEvent(new FriendEvents.RequestAccepted(me.id(), target.getId()));
 		}
 		return new ConnectResponse(UserSummary.from(target), relationshipOf(friendship, me.id()));
 	}
@@ -126,6 +132,7 @@ public class FriendService {
 				.filter(f -> f.getAddresseeId().equals(me.id()) && !f.isAccepted())
 				.orElseThrow(() -> new NotFoundException("Friend request not found"));
 		friendship.accept(clock.instant());
+		events.publishEvent(new FriendEvents.RequestAccepted(me.id(), friendship.getRequesterId()));
 		AppUser requester = users.findById(friendship.getRequesterId()).orElseThrow();
 		return new ConnectResponse(UserSummary.from(requester), RelationshipStatus.FRIENDS);
 	}
@@ -179,7 +186,11 @@ public class FriendService {
 		Instant now = clock.instant();
 		Friendship friendship = friendships.findBetween(me.id(), owner.getId())
 				.orElseGet(() -> friendships.save(Friendship.request(owner.getId(), me.id(), now)));
-		friendship.accept(now);
+		if (!friendship.isAccepted()) {
+			friendship.accept(now);
+			// From the owner's point of view, their invite was accepted.
+			events.publishEvent(new FriendEvents.RequestAccepted(me.id(), owner.getId()));
+		}
 		return new ConnectResponse(UserSummary.from(owner), RelationshipStatus.FRIENDS);
 	}
 

@@ -33,6 +33,9 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
 
+	// Outbound HTTP (Expo push service) via the auto-configured RestClient.Builder
+	implementation("org.springframework.boot:spring-boot-starter-restclient")
+
 	// Operations: health checks / metrics, and generated OpenAPI docs + Swagger UI
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")

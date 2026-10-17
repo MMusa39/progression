@@ -20,6 +20,7 @@ import com.progression.common.web.PageResponse;
 import com.progression.exercise.Exercise;
 import com.progression.exercise.ExerciseRepository;
 import com.progression.user.CurrentUser;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,12 +41,14 @@ public class WorkoutService {
 	private final WorkoutRepository workouts;
 	private final WorkoutExerciseRepository workoutExercises;
 	private final ExerciseRepository exercises;
+	private final ApplicationEventPublisher events;
 
 	WorkoutService(WorkoutRepository workouts, WorkoutExerciseRepository workoutExercises,
-			ExerciseRepository exercises) {
+			ExerciseRepository exercises, ApplicationEventPublisher events) {
 		this.workouts = workouts;
 		this.workoutExercises = workoutExercises;
 		this.exercises = exercises;
+		this.events = events;
 	}
 
 	/** Result of an upsert: the saved workout, and whether it was newly created (201) or updated (200). */
@@ -115,6 +118,7 @@ public class WorkoutService {
 		else {
 			workouts.flush();
 		}
+		events.publishEvent(new WorkoutSavedEvent(user.id(), workoutId, created, workout.getStartedAt()));
 		return new SaveResult(WorkoutResponse.from(workout), created);
 	}
 

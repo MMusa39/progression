@@ -26,7 +26,7 @@ import tools.jackson.databind.json.JsonMapper;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
+@Import({ TestcontainersConfiguration.class, TestPushConfiguration.class })
 public abstract class IntegrationTest {
 
 	@Autowired

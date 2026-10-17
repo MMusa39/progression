@@ -58,7 +58,8 @@ src/main/java/com/progression/
 ├── exercise/                         exercise catalog + custom exercises
 ├── workout/                          workout aggregate, idempotent upsert, history, last performance
 ├── stats/                            progress analytics: summary, progression, records (JdbcClient + SQL)
-└── social/                           friends, invites, privacy checks, leaderboards
+├── social/                           friends, invites, privacy checks, leaderboards
+└── notification/                     device tokens, event listeners, Expo push sender
 
 src/main/resources/
 ├── application.yml                   shared config
@@ -101,6 +102,8 @@ Each feature has the same layers:
 | **Derived, never stored** | `stats/` | PRs, streaks and charts are computed from raw sets on request, so editing an old workout corrects everything. |
 | **Testable time** | `common/TimeConfig` | Services take a `Clock` bean instead of calling `Instant.now()`. |
 | **Unordered-pair uniqueness** | `V4__friends.sql` | `UNIQUE (LEAST(a, b), GREATEST(a, b))` makes A→B and B→A the same friendship at the database level. |
+| **Domain events + after-commit async** | `notification/NotificationService` | Services publish events; listeners run `@TransactionalEventListener` + `@Async`, so pushes never fire for rolled-back work and never slow a request. Tests swap in a recording sender and a synchronous executor. |
+| **External API client** | `notification/ExpoPushSender` | `RestClient`, batching (100 per call), per-message tickets, dead-token cleanup. Tested with `MockRestServiceServer`. |
 | **Centralized authorization** | `social/FriendService#requireWorkoutAccess` | Every friend endpoint calls one access check first: 404 for strangers, 403 for "PRs only". Reads reuse owner-id service methods. |
 
 ## Testing
