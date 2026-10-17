@@ -106,6 +106,8 @@ export type LastPerformance = {
   workoutId: string;
   workoutName: string;
   performedAt: string;
+  /** The exercise note from that session ("Seat at 4"), carried into the next one. */
+  notes: string | null;
   sets: WorkoutSet[];
 };
 

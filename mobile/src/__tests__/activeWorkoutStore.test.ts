@@ -130,4 +130,32 @@ describe('active workout store', () => {
     expect(result?.request.endedAt).toBe('2026-10-01T19:05:00.000Z'); // not "now"
     expect(result?.request.exercises[0].sets[0]).toMatchObject({ id: 's1', reps: 9, weight: 185 });
   });
+
+  it('carries last session\'s note in once, and a cleared note stays cleared', () => {
+    store().addExercises([bench], 'LB');
+    const id = active().exercises[0].id;
+
+    store().seedNotes(id, 'Seat at 4');
+    expect(active().exercises[0].notes).toBe('Seat at 4');
+
+    store().setNotes(id, '');
+    store().seedNotes(id, 'Seat at 4'); // e.g. the query refetches
+    expect(active().exercises[0].notes).toBe('');
+  });
+
+  it('starts a routine with its planned sets and targets', () => {
+    store().start({
+      unit: 'KG',
+      routine: {
+        id: 'r1',
+        name: 'Upper A',
+        notes: null,
+        exercises: [{ exerciseId: 'bench-id', exerciseName: 'Bench Press', muscleGroup: 'CHEST', equipment: 'BARBELL', sets: 3, repMin: 6, repMax: 8 }],
+      },
+    });
+    expect(active().name).toBe('Upper A');
+    expect(active().exercises[0].sets).toHaveLength(3);
+    expect(active().exercises[0].sets[0].weightUnit).toBe('KG');
+    expect(active().exercises[0].target).toEqual({ sets: 3, repMin: 6, repMax: 8 });
+  });
 });

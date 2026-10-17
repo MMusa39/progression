@@ -34,6 +34,11 @@ export type DraftExercise = {
   exercise: Pick<Exercise, 'id' | 'name' | 'muscleGroup' | 'equipment'>;
   notes: string;
   sets: DraftSet[];
+  /**
+   * Whether the note has been filled in (from last session) or edited. Once true,
+   * last session's note is never applied again, so clearing a note sticks.
+   */
+  notesSeeded?: boolean;
   /** From a routine: the plan for this exercise. Drives the target line and overload hints. */
   target?: { sets: number; repMin: number; repMax: number };
 };
@@ -63,6 +68,8 @@ type ActiveWorkoutState = {
   removeExercise: (workoutExerciseId: string) => void;
   moveExercise: (workoutExerciseId: string, direction: -1 | 1) => void;
   setNotes: (workoutExerciseId: string, notes: string) => void;
+  /** Carries last session's note into this exercise, once (sticky notes like "Seat at 4"). */
+  seedNotes: (workoutExerciseId: string, notes: string | null) => void;
   addSet: (workoutExerciseId: string) => void;
   removeSet: (workoutExerciseId: string, setId: string) => void;
   updateSet: (workoutExerciseId: string, setId: string, patch: Partial<Pick<DraftSet, 'weight' | 'reps' | 'setType'>>) => void;
@@ -126,6 +133,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>()(
                   id: randomUUID(),
                   exercise: { id: we.exerciseId, name: we.exerciseName, muscleGroup: we.muscleGroup, equipment: we.equipment },
                   notes: we.notes ?? '',
+                  notesSeeded: true,
                   sets: we.sets.map((s) => newSet(s.weightUnit ?? unit, s.setType)),
                 })) ?? []),
           },
@@ -142,6 +150,7 @@ export const useActiveWorkout = create<ActiveWorkoutState>()(
               id: we.id,
               exercise: { id: we.exerciseId, name: we.exerciseName, muscleGroup: we.muscleGroup, equipment: we.equipment },
               notes: we.notes ?? '',
+              notesSeeded: true,
               sets: we.sets.map((s) => ({
                 id: s.id,
                 setType: s.setType,
@@ -187,7 +196,14 @@ export const useActiveWorkout = create<ActiveWorkoutState>()(
         }),
 
       setNotes: (workoutExerciseId, notes) =>
-        set(({ active }) => ({ active: updateExercise(active, workoutExerciseId, (we) => ({ ...we, notes })) })),
+        set(({ active }) => ({ active: updateExercise(active, workoutExerciseId, (we) => ({ ...we, notes, notesSeeded: true })) })),
+
+      seedNotes: (workoutExerciseId, notes) =>
+        set(({ active }) => ({
+          active: updateExercise(active, workoutExerciseId, (we) =>
+            we.notesSeeded ? we : { ...we, notes: we.notes || (notes ?? ''), notesSeeded: true },
+          ),
+        })),
 
       addSet: (workoutExerciseId) =>
         set(({ active }) => ({

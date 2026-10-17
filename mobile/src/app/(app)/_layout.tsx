@@ -33,6 +33,16 @@ export default function AppLayout() {
         <Stack.Screen name="invite/[code]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="weigh-in" options={{ presentation: 'modal' }} />
         <Stack.Screen
+          name="plates"
+          options={{
+            presentation: 'modal',
+            headerTintColor: colors.accentText,
+            headerTitleStyle: { color: colors.text },
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
           name="exercise-picker"
           options={{
             presentation: 'modal',

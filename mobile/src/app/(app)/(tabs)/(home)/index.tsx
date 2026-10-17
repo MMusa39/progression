@@ -15,6 +15,7 @@ import { ElapsedTimer } from '@/features/workout/components/ElapsedTimer';
 import { WorkoutSummaryCard } from '@/features/workout/components/WorkoutSummaryCard';
 import { formatWorkoutDate } from '@/features/workout/format';
 import { useStartWorkout } from '@/features/workout/useStartWorkout';
+import { useWeeklyGoal, workoutsThisWeek } from '@/features/workout/weeklyGoal';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -29,7 +30,9 @@ export default function WorkoutHomeScreen() {
   const { startEmpty, repeat, startRoutine } = useStartWorkout();
   const routines = useRoutines();
 
-  const recent = history.data?.pages[0]?.items.slice(0, 3) ?? [];
+  const firstPage = history.data?.pages[0]?.items ?? [];
+  const recent = firstPage.slice(0, 3);
+  const weeklyGoal = useWeeklyGoal((s) => s.goal);
   const firstName = me.data?.displayName?.split(' ')[0];
 
   return (
@@ -93,6 +96,8 @@ export default function WorkoutHomeScreen() {
         </Card>
       )}
 
+      {weeklyGoal !== null && history.data && <WeekProgress done={workoutsThisWeek(firstPage)} goal={weeklyGoal} />}
+
       {pending.length > 0 && (
         <Card style={styles.row}>
           <Icon name="cloud-upload-outline" size={20} color="textSecondary" />
@@ -155,6 +160,35 @@ export default function WorkoutHomeScreen() {
   );
 }
 
+/** "This week: 2 of 4": one dot per planned workout, filled as you go. */
+function WeekProgress({ done, goal }: { done: number; goal: number }) {
+  const { colors } = useTheme();
+  const hit = done >= goal;
+  return (
+    <Card
+      onPress={() => router.push('/profile')}
+      style={styles.row}
+      accessibilityLabel={`This week: ${done} of ${goal} workouts${hit ? ', goal reached' : ''}. Tap to change your goal.`}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text variant="caption" color="textSecondary">
+          THIS WEEK
+        </Text>
+        <Text variant="headline">
+          {hit ? `Goal reached: ${done} workouts` : `${done} of ${goal} workouts`}
+        </Text>
+      </View>
+      <View style={styles.dots}>
+        {Array.from({ length: Math.max(goal, done) }, (_, i) => (
+          <View
+            key={i}
+            style={[styles.dot, { backgroundColor: i < done ? colors.accent : 'transparent', borderColor: i < done ? colors.accent : colors.border }]}
+          />
+        ))}
+      </View>
+    </Card>
+  );
+}
+
 function RoutineCard({ routine, onStart }: { routine: Routine; onStart: () => void }) {
   const names = routine.exercises.map((e) => e.exerciseName);
   const summary = names.slice(0, 3).join(', ') + (names.length > 3 ? ` +${names.length - 3}` : '');
@@ -190,4 +224,6 @@ const styles = StyleSheet.create({
   startIcon: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   section: { gap: space.md, marginTop: space.sm },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dots: { flexDirection: 'row', gap: 6 },
+  dot: { width: 14, height: 14, borderRadius: radius.pill, borderWidth: 1.5 },
 });

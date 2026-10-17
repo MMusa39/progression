@@ -150,6 +150,7 @@ export function useWorkout(id: string) {
   return useQuery({
     queryKey: queryKeys.workout(id),
     queryFn: () => apiRequest<Workout>(`/api/v1/workouts/${id}`),
+    enabled: id.length > 0,
   });
 }
 

@@ -5,12 +5,15 @@
  * greyed-out suggestions, which follow the hint so ticking a set logs it.
  */
 import * as Haptics from 'expo-haptics';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Button, Card, Icon, Text } from '@/components/ui';
 import { useLastPerformance } from '@/features/api/queries';
 import type { WeightUnit } from '@/features/api/types';
-import { space } from '@/theme/tokens';
+import { radius, space } from '@/theme/tokens';
+import { useTheme } from '@/theme/useTheme';
 
 import { useActiveWorkout, type DraftExercise, type DraftSet } from '../activeWorkoutStore';
 import { useRestTimer } from '../restTimer';
@@ -27,9 +30,19 @@ type ExerciseCardProps = {
 };
 
 export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCardProps) {
-  const lastPerformance = useLastPerformance(item.exercise.id, workoutId).data ?? null;
+  const { colors } = useTheme();
+  const lastPerformanceQuery = useLastPerformance(item.exercise.id, workoutId);
+  const lastPerformance = lastPerformanceQuery.data ?? null;
   const editing = useActiveWorkout((s) => Boolean(s.active?.editing));
-  const { updateSet, toggleComplete, removeSet, addSet, removeExercise, moveExercise } = useActiveWorkout.getState();
+  const { updateSet, toggleComplete, removeSet, addSet, removeExercise, moveExercise, setNotes, seedNotes } = useActiveWorkout.getState();
+  const [noteOpen, setNoteOpen] = useState(false);
+
+  // Sticky notes: last session's note ("Seat at 4") carries into this one, once.
+  const lastNote = lastPerformance?.notes ?? null;
+  const loaded = lastPerformanceQuery.isSuccess;
+  useEffect(() => {
+    if (loaded) seedNotes(item.id, lastNote);
+  }, [loaded, lastNote, item.id, seedNotes]);
 
   const previousSets = lastPerformance?.sets ?? [];
   // No hints when fixing up a past workout: that's about recording, not progressing.
@@ -40,6 +53,7 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
     Alert.alert(item.exercise.name, undefined, [
       ...(index > 0 ? [{ text: 'Move up', onPress: () => moveExercise(item.id, -1) }] : []),
       ...(index < count - 1 ? [{ text: 'Move down', onPress: () => moveExercise(item.id, 1) }] : []),
+      ...(!item.notes && !noteOpen ? [{ text: 'Add note', onPress: () => setNoteOpen(true) }] : []),
       { text: 'Remove exercise', style: 'destructive' as const, onPress: () => removeExercise(item.id) },
       { text: 'Cancel', style: 'cancel' as const },
     ]);
@@ -82,10 +96,42 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
               ` · ${item.target.sets} × ${item.target.repMin === item.target.repMax ? item.target.repMin : `${item.target.repMin}–${item.target.repMax}`} reps`}
           </Text>
         </View>
+        {item.exercise.equipment === 'BARBELL' && (
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/plates',
+                params: { weight: plateWeight(item, hint ? formatWeight(hint.weight) : undefined), unit: tableUnit },
+              })
+            }
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Plate calculator">
+            <Icon name="calculator-outline" size={20} color="textSecondary" />
+          </Pressable>
+        )}
         <Pressable onPress={openMenu} hitSlop={12} accessibilityRole="button" accessibilityLabel={`${item.exercise.name} options`}>
           <Icon name="ellipsis-horizontal" size={22} color="textSecondary" />
         </Pressable>
       </View>
+
+      {(item.notes !== '' || noteOpen) && (
+        <View style={[styles.note, { backgroundColor: colors.surfaceRaised }]}>
+          <Icon name="document-text-outline" size={14} color="textTertiary" />
+          <TextInput
+            value={item.notes}
+            onChangeText={(text) => setNotes(item.id, text)}
+            onBlur={() => setNoteOpen(false)}
+            autoFocus={noteOpen && item.notes === ''}
+            placeholder="Note for next time: seat height, grip…"
+            placeholderTextColor={colors.textTertiary}
+            multiline
+            maxLength={300}
+            accessibilityLabel={`${item.exercise.name} note`}
+            style={[styles.noteInput, { color: colors.text }]}
+          />
+        </View>
+      )}
 
       {hint && (
         <View style={styles.hint} accessible accessibilityLabel={`Suggestion for today: ${formatHint(hint)}. ${hint.reason}.`}>
@@ -132,6 +178,12 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
   );
 }
 
+/** Weight to open the plate calculator with: the first typed working weight, else the hint, else empty. */
+function plateWeight(item: DraftExercise, hintWeight?: string): string {
+  const typed = item.sets.find((s) => s.setType === 'WORKING' && s.weight)?.weight;
+  return typed ?? hintWeight ?? '';
+}
+
 function setLabel(sets: DraftSet[], index: number): string {
   const type = sets[index].setType;
   if (type === 'WARMUP') return 'W';
@@ -144,4 +196,6 @@ const styles = StyleSheet.create({
   card: { gap: space.sm, paddingHorizontal: space.md },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   hint: { flexDirection: 'row', alignItems: 'center', gap: space.xs + 2 },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs + 2, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6 },
+  noteInput: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 19, padding: 0 },
 });

@@ -23,9 +23,11 @@ import { AuthProvider, useSession } from '@/features/auth/AuthProvider';
 import { useActiveWorkout } from '@/features/workout/activeWorkoutStore';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
 import { queryClient } from '@/lib/queryClient';
+import { installWebAlert } from '@/lib/webAlert';
 import { useTheme } from '@/theme/useTheme';
 
 SplashScreen.preventAutoHideAsync();
+installWebAlert();
 
 export default function RootLayout() {
   const { scheme, colors } = useTheme();

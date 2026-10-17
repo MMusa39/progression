@@ -44,6 +44,7 @@ npx expo start --clear  # env changes need a cache clear
 | `npm run typecheck` | TypeScript, including typed routes |
 | `npm run lint` | ESLint (eslint-config-expo) |
 | `npx expo-doctor` | Checks dependency versions and config |
+| `npm run e2e:web` | End-to-end smoke test in the web preview (needs the API with seed data and `npx expo start --web`; see [docs/testing.md](../docs/testing.md)) |
 | `npx eas-cli@latest build -p ios --profile production` | App Store build (see [docs/release.md](../docs/release.md)) |
 
 Release builds read `EXPO_PUBLIC_*` values from EAS environment variables
@@ -124,6 +125,19 @@ signed-in halves of the app whenever the session changes.
   range (or matched the first set, without a routine), suggest the next weight
   up for the equipment; otherwise suggest one more rep. The hint replaces the
   grey suggestions for working sets, so following it costs nothing.
+
+- **Sticky notes:** each exercise has an optional note ("Seat at 4"). When
+  last session's note loads, it's copied into the new workout once
+  (`seedNotes`), so it carries forward until you change or clear it.
+- **Plate calculator** (`plates.tsx`, `features/workout/plates.ts`): the
+  calculator icon on barbell exercises opens it with the weight you're about to
+  lift, and shows the plates per side (45/35 lb or 20/15 kg bar, or none).
+- **Weekly goal** (`features/workout/weeklyGoal.ts`): set in Profile, stored on
+  the phone; the Workout tab shows "2 of 4 workouts" as dots for this week
+  (Monday to Sunday, local time).
+- On web only, a development shim (`lib/webAlert.ts`) maps `Alert.alert`
+  confirmations to browser dialogs, so the web preview and the E2E test can
+  complete flows like Finish workout.
 
 ### Your data, privacy and legal
 

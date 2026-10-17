@@ -14,6 +14,9 @@ import { addDays, dayLabel, localDate } from '@/lib/dates';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
+/** Back to where the user came from, or to Progress when opened directly (e.g. from a link). */
+const close = () => (router.canGoBack() ? router.back() : router.replace('/progress'));
+
 export default function WeighInScreen() {
   const { colors } = useTheme();
   const params = useLocalSearchParams<{ date?: string }>();
@@ -39,7 +42,7 @@ export default function WeighInScreen() {
   const save = () =>
     log.mutate(
       { date, weight, unit: existing && text === null ? existing.weightUnit : unit },
-      { onSuccess: () => router.back(), onError: (e) => Alert.alert("Couldn't save", e.message) },
+      { onSuccess: close, onError: (e) => Alert.alert("Couldn't save", e.message) },
     );
 
   return (
@@ -51,7 +54,7 @@ export default function WeighInScreen() {
             <Button
               title="Delete weigh-in"
               variant="ghost"
-              onPress={() => remove.mutate(date, { onSuccess: () => router.back() })}
+              onPress={() => remove.mutate(date, { onSuccess: close })}
               loading={remove.isPending}
             />
           )}

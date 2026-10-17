@@ -15,6 +15,7 @@ import { NotificationSettings } from '@/features/notifications/NotificationSetti
 import { unregisterPush } from '@/features/notifications/notifications';
 import { authSession } from '@/features/auth/session';
 import { formatRest, REST_OPTIONS, useRestTimer, type RestOption } from '@/features/workout/restTimer';
+import { GOAL_OPTIONS, useWeeklyGoal } from '@/features/workout/weeklyGoal';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
   const updateMe = useUpdateMe();
   const pendingUploads = useWorkoutSync((s) => s.pending.length);
   const restDefault = useRestTimer((s) => s.defaultSeconds);
+  const weeklyGoal = useWeeklyGoal((s) => s.goal);
   const [editingUsername, setEditingUsername] = useState(false);
   const [busy, setBusy] = useState<'export' | 'delete' | null>(null);
 
@@ -142,6 +144,19 @@ export default function ProfileScreen() {
           ]}
           value={me.data?.weightUnit ?? 'LB'}
           onChange={(weightUnit) => updateMe.mutate({ weightUnit })}
+        />
+      </Card>
+
+      <Card>
+        <Text variant="headline">Weekly goal</Text>
+        <Text variant="footnote" color="textSecondary">
+          How many workouts you aim for each week. Progress shows on the Workout tab.
+        </Text>
+        <SegmentedControl<string>
+          accessibilityLabel="Workouts per week"
+          options={[{ value: 'off', label: 'Off' }, ...GOAL_OPTIONS.map((n) => ({ value: String(n), label: `${n}×` }))]}
+          value={weeklyGoal === null ? 'off' : String(weeklyGoal)}
+          onChange={(v) => useWeeklyGoal.getState().setGoal(v === 'off' ? null : Number(v))}
         />
       </Card>
 
