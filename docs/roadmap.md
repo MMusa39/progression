@@ -7,7 +7,7 @@ merged with tests and documentation.
 - [x] Monorepo layout, README, architecture/data-model/API docs, ADRs
 - [x] Install toolchain (Homebrew, JDK 25, Node 24 LTS, Colima/Docker, AWS CLI, AWS CDK)
 - [x] GitHub Actions CI: backend build + Testcontainers, CDK tests + synth, mobile lint/typecheck/tests
-- [ ] Push to GitHub
+- [x] Push to GitHub (private repo MMusa39/progression)
 
 ## Phase 1: Backend core
 - [x] Spring Boot project (Gradle), Docker Compose PostgreSQL
