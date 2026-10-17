@@ -15,6 +15,13 @@ app_user 1───* workout 1───* workout_exercise 1───* exercise_s
     └──────────────* exercise ─────┘        (exercise: global catalog + user-created)
     │
     └──* workout_template 1───* template_exercise *───1 exercise
+    │
+    ├──* body_weight_entry                     (one per local day)
+    ├──1 nutrition_profile                     (goal inputs)
+    ├──* food (custom)      food (Open Food Facts cache, shared)
+    ├──* recipe 1───* recipe_ingredient *───1 food
+    ├──* food_log_entry ···> food / recipe     (nutrition snapshotted)
+    └──* water_intake                          (one per local day)
 ```
 
 ## Tables
@@ -101,6 +108,37 @@ and personal records are **computed from `exercise_set` with SQL**, not stored
 in their own columns. That gives the data one source of truth: editing an old
 set automatically corrects every chart and PR. If the queries ever become slow,
 a materialized summary table can be added without changing the API.
+
+### Shared recipes (V8)
+
+- **`recipe`** gains `shared` (default `false`) and `copied_from` (the friend's
+  recipe a copy was saved from, `ON DELETE SET NULL`). A unique index on
+  `(owner_id, copied_from)` makes "save a copy" idempotent.
+
+### Nutrition (V7)
+
+- **`nutrition_profile`**: one row per user: `sex`, `birth_year`, `height_cm`,
+  `activity_level`, `goal_weight_kg`, `goal_date`, `adaptive`. Targets are
+  computed from it on request, never stored.
+- **`food`**: nutrition per 100 g (`kcal_100g`, `protein_100g`, `carbs_100g`,
+  `fat_100g`, `fiber_100g`), optional `serving_g` / `serving_label`.
+  `source` is `OPEN_FOOD_FACTS` (cached product, `owner_id` NULL, unique
+  barcode) or `CUSTOM` (`owner_id` set; a check constraint ties the two together).
+- **`recipe`** (client-generated id) and **`recipe_ingredient`** (`position`,
+  `food_id`, `grams`). Per-serving nutrition is derived from the ingredients.
+- **`food_log_entry`**: `logged_on` (the user's local date), `meal`, `kind`
+  (`FOOD` / `RECIPE` / `QUICK`), `amount` + `amount_unit` (`G` / `SERVING`),
+  `name` and the **nutrition snapshot** (`kcal`, `protein_g`, ...). `food_id` /
+  `recipe_id` are kept for re-logging but set to NULL if the source is
+  deleted; the entry itself never changes. See ADR 0010.
+- **`water_intake`**: `(user_id, logged_on)` → `ml`.
+
+### Body weight (V6)
+
+- **`body_weight_entry`**: primary key `(user_id, measured_on)`, so there's one
+  weigh-in per local calendar day and re-logging replaces it. `weight` +
+  `weight_unit` as entered, plus a generated `weight_kg`, the same pattern as
+  `exercise_set`. The trend line is computed in Java (`WeightTrend`), not stored.
 
 ### Push notifications (V5)
 

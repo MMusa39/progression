@@ -169,6 +169,59 @@ through Expo's push service:
 | Request accepted / invite used | The original requester / invite owner | That friend |
 | New workout with personal records (started < 48h ago, first save only) | All friends | That friend |
 
+### Body weight
+
+Private to the user. Weights are stored as entered (`weight` + `weightUnit`)
+with a normalized `weightKg`, like sets.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `PUT` | `/body-weights/{date}` | `{ "weight": 176.4, "weightUnit": "LB", "today": "2026-10-17" }`. One weigh-in per local calendar day (idempotent). `today` is the client's local date, so a date after it is rejected. |
+| `DELETE` | `/body-weights/{date}` | Remove that day's weigh-in. |
+| `GET` | `/body-weights?from=` | `{ entries, currentTrendKg, weeklyChangeKg, changeInRangeKg }`. Each entry has `trendKg`: an exponentially weighted moving average (10%/day, compounded over gaps). |
+
+### Nutrition goal and targets
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/nutrition/profile` | Goal inputs, or `204` if not set up. |
+| `PUT` | `/nutrition/profile` | `{ sex, birthYear, heightCm, activityLevel, goalWeight, weightUnit, goalDate, adaptive, currentWeight?, today }`. `currentWeight`, if given, is also logged as today's weigh-in. |
+| `GET` | `/nutrition/targets?today=` | `{ targets, currentWeightKg, goalWeightKg, goalDate, adaptiveLoggedDays }`, or `204` without a profile. `targets` has `calories`, `proteinG`, `carbsG`, `fatG`, `fiberG`, `waterMl`, `bmr`, `formulaTdee`, `tdee`, `tdeeSource` (`FORMULA` / `ADAPTIVE`), `weeklyRateKg`, `goal`, `rateCapped`, `atCalorieFloor`, `projectedGoalDate`. See [ADR 0010](adr/0010-food-tracking-and-targets.md) for the math. |
+
+### Foods
+
+Nutrition is always **per 100 g** (or ml). A food is either cached from Open
+Food Facts (shared) or a custom food (private to its creator).
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/foods/barcode/{code}` | Look up a barcode: cache first, then Open Food Facts (also tries the 13-digit form of a 12-digit UPC). `404` if unknown. |
+| `GET` | `/foods/search?q=` | Name/brand search over your custom foods and cached products. |
+| `GET` | `/foods/{id}` | One food (cached, or your own custom food). |
+| `GET` | `/foods/mine` | Your custom foods. |
+| `POST` | `/foods` | Create a custom food. `{ name, brand?, barcode?, servingG, servingLabel?, perServingValues: { kcal, proteinG?, carbsG?, fatG?, fiberG? } }`: values as printed on the label; stored per 100 g. `201`. |
+| `GET` | `/foods/recent` | Recently logged foods and recipes, with the amount you used last time. |
+
+### Food diary
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/diary/{date}` | `{ date, entries, totals, waterMl }` for one local day. |
+| `PUT` | `/diary/entries/{id}` | Create or replace an entry (client-generated id). `{ date, meal, kind, foodId? \| recipeId? \| quick?, amount, amountUnit }`, where `meal` is `BREAKFAST`/`LUNCH`/`DINNER`/`SNACK`, `kind` is `FOOD`/`RECIPE`/`QUICK`, and `amountUnit` is `G`/`SERVING`. The server computes and **snapshots** the nutrition. |
+| `DELETE` | `/diary/entries/{id}` | Remove an entry. |
+| `POST` | `/diary/{date}/copy` | `{ fromDate, meal? }`: copy a day's entries (or one meal) into `date`. |
+| `PUT` | `/diary/{date}/water` | `{ "ml": 2000 }`: set the day's water total. |
+
+### Recipes
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/recipes` | Your recipes, each with `ingredients`, `total`, `perServing` and `shared`. |
+| `GET` / `PUT` / `DELETE` | `/recipes/{id}` | Read / create-or-replace / delete. `PUT { name, servings, ingredients: [{ foodId, grams }], shared? }`; omitting `shared` keeps the current setting. Deleting doesn't change past diary entries. |
+| `GET` | `/recipes/shared` | Recipes your friends have shared, with `sharedBy` and `savedCopyId` (your copy, if saved). |
+| `GET` | `/recipes/shared/{id}` | One shared recipe. `404` unless it's shared and the owner is your friend. |
+| `POST` | `/recipes/shared/{id}/copy` | `{ "id": "<new uuid>" }`: save your own copy (the owner's custom foods are copied too). Saving again returns the existing copy. |
+
 ### Templates
 
 | Method | Path | Description |

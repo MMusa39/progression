@@ -2,7 +2,9 @@
 
 **Progression** is a mobile workout tracker for people who lift. It replaces the
 "exercise name, weight, reps, reps, reps" notes-app workflow with a fast logging
-screen, and shows how each lift is progressing over time.
+screen, and shows how each lift is progressing over time. It also tracks body
+weight and food (barcode scanning, recipes, calorie and macro targets), so
+training, nutrition and the scale live in one app.
 
 > Status: early development. See [docs/roadmap.md](docs/roadmap.md) for what is
 > done and what is next.
@@ -42,6 +44,11 @@ answer those questions for you.
 | Repeat & edit | Start a new workout from any past one with one tap, or fix mistakes in a saved workout. |
 | Rest timer | Starts automatically when you tick off a set; adjust ±15s or skip; buzzes when rest is over, with a notification if you've left the app. |
 | Notifications | Friend requests, accepted invites, and friends' new PRs, each switchable in Profile. |
+| Body weight | Log a daily weigh-in; see a smoothed trend that ignores water swings, your weekly rate, and when you'll reach your goal. |
+| Food diary | Breakfast / lunch / dinner / snacks with calories, protein, carbs, fat and fiber against your targets. Search foods, re-log recents, copy a previous day's meal, quick-add calories, track water. |
+| Barcode scanning | Scan a product to log it (Open Food Facts, 3M+ products). Unknown barcodes can be added from the label once and are found next time. |
+| Recipes | Build a recipe from ingredients, log servings in one tap, and share it with friends, who can save their own copy. |
+| Calorie & macro targets | From sex, age, height, weight, goal weight, timeline and activity, with safe-pace limits, and adaptive maintenance that learns from what you log and how your weight responds. |
 | Overload hints | Suggests when to add weight based on your recent performance. |
 | Offline-first | Gyms have bad signal; workouts are saved on the phone and synced when possible. |
 

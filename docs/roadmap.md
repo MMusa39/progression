@@ -56,6 +56,15 @@ merged with tests and documentation.
 - [x] Privacy: non-friends see nothing (404); "PRs only" sharing (403 on workouts)
 - [x] Push notifications for friend requests and friends' PRs (Expo push service, ADR 0009)
 
+## Phase 5c: Body weight & nutrition
+- [x] Fixed tab bar: Workout · Food · Progress · Friends · Profile (History moved into Workout)
+- [x] Body weight: daily weigh-ins, smoothed trend, weekly rate, goal pace (V6)
+- [x] Goal setup and calorie/macro/fiber/water targets with safe-pace caps (Mifflin-St Jeor)
+- [x] Adaptive maintenance from logged intake vs. trend weight
+- [x] Food diary: meals, quick add, copy previous day, recent foods, water (V7)
+- [x] Barcode scanning (expo-camera) with Open Food Facts lookup and caching; custom foods from a label
+- [x] Recipes, and sharing recipes with friends (save a copy) (V8)
+
 ## Phase 6: Offline-first sync
 - [ ] SQLite store on device, sync queue with retries, conflict handling
 

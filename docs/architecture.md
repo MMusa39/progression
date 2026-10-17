@@ -67,6 +67,11 @@ com.progression
 ├── workout/       WorkoutController, WorkoutService, ...
 ├── stats/         analytics over the working_set view (JdbcClient + SQL)
 ├── user/          current-user resolution, preferences
+├── social/        friends, invites, leaderboards, access checks
+├── notification/  push tokens, domain-event listeners, Expo push sender
+├── body/          weigh-ins and trend weight
+├── nutrition/     goal profile and calorie/macro targets
+├── food/          Open Food Facts client + cache, foods, recipes, diary
 └── common/        error handling, security config, shared types
 ```
 
@@ -150,6 +155,22 @@ network.
 - Friend views reuse the existing workout and stats services through
   owner-id variants (`listForOwner`, `recentRecordsOf`), so there's no
   duplicated query logic. Leaderboards compute everyone in one SQL query.
+
+### Food and body weight
+
+- **Food data** comes from Open Food Facts through `FoodDatabase`
+  (`OpenFoodFactsClient`), and every product looked up is cached in the `food`
+  table, so repeat scans never leave our database. See
+  [ADR 0010](adr/0010-food-tracking-and-targets.md).
+- **Diary entries snapshot their nutrition** when logged; history never
+  changes when a food or recipe does.
+- **Targets are computed on request** (`TargetCalculator`) from the profile,
+  the weigh-in trend and the last 28 days of diary, the same "derived, never
+  stored" rule as PRs.
+- **Privacy:** weight, diary and goals are never visible to friends. Recipes
+  are shared only when the owner switches on "Share with friends", checked
+  through the same `FriendService` access rule; friends save a copy rather
+  than reading the original.
 
 ### Notifications
 
