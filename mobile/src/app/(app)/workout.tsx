@@ -45,7 +45,26 @@ export default function ActiveWorkoutScreen() {
   // Briefly null while the sheet animates away after Finish/Discard.
   if (!active) return <View style={[styles.root, { backgroundColor: colors.background }]} />;
 
+  const editing = Boolean(active.editing);
+
+  /** Edit mode: save changes in place and return to the workout's detail screen. */
+  const saveEdits = () => {
+    const { completed } = workoutProgress(active);
+    if (completed === 0) {
+      Alert.alert('Nothing to save', 'A workout needs at least one completed set. To remove it, delete it from History.');
+      return;
+    }
+    const result = useActiveWorkout.getState().finish();
+    if (!result) return;
+    const sync = useWorkoutSync.getState();
+    sync.enqueue(result);
+    sync.flush(queryClient);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    router.back();
+  };
+
   const finish = () => {
+    if (editing) return saveEdits();
     const { completed, total } = workoutProgress(active);
     if (completed === 0) {
       Alert.alert('No sets completed', 'Tick off at least one set to save this workout, or discard it.', [
@@ -88,10 +107,15 @@ export default function ActiveWorkoutScreen() {
   }
 
   const confirmDiscard = () =>
-    Alert.alert('Discard workout?', "Everything you've logged in this workout will be deleted.", [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: discard },
-    ]);
+    editing
+      ? Alert.alert('Discard changes?', 'The saved workout stays as it was.', [
+          { text: 'Keep editing', style: 'cancel' },
+          { text: 'Discard changes', style: 'destructive', onPress: discard },
+        ])
+      : Alert.alert('Discard workout?', "Everything you've logged in this workout will be deleted.", [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Discard', style: 'destructive', onPress: discard },
+        ]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -100,8 +124,14 @@ export default function ActiveWorkoutScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Minimize workout">
           <Icon name="chevron-down" size={26} color="textSecondary" />
         </Pressable>
-        <ElapsedTimer since={active.startedAt} variant="number" style={styles.timer} />
-        <Button title="Finish" size="sm" fullWidth={false} onPress={finish} />
+        {editing ? (
+          <Text variant="headline" color="textSecondary">
+            Editing
+          </Text>
+        ) : (
+          <ElapsedTimer since={active.startedAt} variant="number" style={styles.timer} />
+        )}
+        <Button title={editing ? 'Save' : 'Finish'} size="sm" fullWidth={false} onPress={finish} />
       </View>
 
       <ScrollView
@@ -140,7 +170,7 @@ export default function ActiveWorkoutScreen() {
         ))}
 
         <Button title="Add exercises" icon="add-circle-outline" variant="secondary" onPress={() => router.push('/exercise-picker')} />
-        <Button title="Discard workout" variant="ghost" onPress={confirmDiscard} style={{ marginTop: space.lg }} />
+        <Button title={editing ? 'Discard changes' : 'Discard workout'} variant="ghost" onPress={confirmDiscard} style={{ marginTop: space.lg }} />
       </ScrollView>
 
       <RestTimerBar bottomInset={insets.bottom} />

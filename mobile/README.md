@@ -96,6 +96,9 @@ signed-in halves of the app whenever the session changes.
   an **upload queue** (`workoutSync.ts`) and is sent with
   `PUT /api/v1/workouts/{id}`. That call is idempotent, so failed uploads can be
   retried safely (on next launch / app foreground).
+- **Editing a past workout** loads it into the same store with an `editing`
+  flag: ids and set times are kept, and Save sends the same idempotent PUT, so
+  the server updates it in place (its original end time is preserved).
 - Ticking off a set starts the **rest timer** (`restTimer.ts`). It stores an
   absolute deadline rather than a countdown, so it stays correct if the app
   is backgrounded or reloaded.

@@ -10,6 +10,7 @@ import { useMe, useWorkoutHistory } from '@/features/api/queries';
 import { useActiveWorkout, workoutProgress } from '@/features/workout/activeWorkoutStore';
 import { ElapsedTimer } from '@/features/workout/components/ElapsedTimer';
 import { WorkoutSummaryCard } from '@/features/workout/components/WorkoutSummaryCard';
+import { formatWorkoutDate } from '@/features/workout/format';
 import { useStartWorkout } from '@/features/workout/useStartWorkout';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
 import { radius, space } from '@/theme/tokens';
@@ -42,17 +43,30 @@ export default function WorkoutHomeScreen() {
           <View style={styles.row}>
             <View style={[styles.liveDot, { backgroundColor: colors.accent }]} />
             <Text variant="caption" color="accentText">
-              IN PROGRESS
+              {active.editing ? 'EDITING' : 'IN PROGRESS'}
             </Text>
           </View>
           <Text variant="title2">{active.name}</Text>
           <View style={styles.row}>
-            <ElapsedTimer since={active.startedAt} variant="number" color="textSecondary" />
-            <Text variant="subhead" color="textSecondary">
-              · {workoutProgress(active).completed} sets done
-            </Text>
+            {active.editing ? (
+              <Text variant="subhead" color="textSecondary">
+                From {formatWorkoutDate(active.startedAt)} · {workoutProgress(active).completed} sets
+              </Text>
+            ) : (
+              <>
+                <ElapsedTimer since={active.startedAt} variant="number" color="textSecondary" />
+                <Text variant="subhead" color="textSecondary">
+                  · {workoutProgress(active).completed} sets done
+                </Text>
+              </>
+            )}
           </View>
-          <Button title="Resume workout" icon="play" onPress={() => router.push('/workout')} style={{ marginTop: space.sm }} />
+          <Button
+            title={active.editing ? 'Continue editing' : 'Resume workout'}
+            icon={active.editing ? 'create-outline' : 'play'}
+            onPress={() => router.push('/workout')}
+            style={{ marginTop: space.sm }}
+          />
         </Card>
       ) : (
         <Card style={styles.startCard}>

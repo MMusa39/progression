@@ -110,4 +110,24 @@ describe('active workout store', () => {
     expect(active().exercises[0].sets.map((s) => [s.setType, s.weight])).toEqual([['WARMUP', ''], ['WORKING', '']]);
     expect(active().exercises[0].sets[0].id).not.toBe('s1'); // new ids: this is a new workout
   });
+
+  it('editing a saved workout keeps its ids, sets and end time', () => {
+    store().discard();
+    store().edit({
+      id: 'saved-workout', name: 'Push Day', startedAt: '2026-10-01T18:00:00.000Z', endedAt: '2026-10-01T19:05:00.000Z',
+      notes: null, updatedAt: '2026-10-01T19:05:00.000Z',
+      exercises: [{
+        id: 'we1', exerciseId: 'bench-id', exerciseName: 'Bench Press', muscleGroup: 'CHEST', equipment: 'BARBELL', notes: null,
+        sets: [{ id: 's1', setType: 'WORKING', weight: 185, weightUnit: 'LB', reps: 8, rpe: null, completedAt: '2026-10-01T18:10:00.000Z' }],
+      }],
+    });
+
+    expect(active().editing).toEqual({ endedAt: '2026-10-01T19:05:00.000Z' });
+    store().updateSet('we1', 's1', { reps: '9' }); // fix a typo
+
+    const result = store().finish();
+    expect(result?.id).toBe('saved-workout');
+    expect(result?.request.endedAt).toBe('2026-10-01T19:05:00.000Z'); // not "now"
+    expect(result?.request.exercises[0].sets[0]).toMatchObject({ id: 's1', reps: 9, weight: 185 });
+  });
 });

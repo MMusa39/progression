@@ -7,6 +7,7 @@
  *   last week is one tap per set.
  * - Tapping PREVIOUS copies those numbers into the fields.
  * - Tapping the set number changes the set type (warm-up/drop/failure) or deletes it.
+ * - Ticked sets stay editable, so a typo can be fixed without unticking first.
  */
 import * as Haptics from 'expo-haptics';
 import { memo } from 'react';
@@ -86,7 +87,6 @@ export const SetRow = memo(function SetRow({ set, label, previous, suggestion, o
         placeholderTextColor={colors.textTertiary}
         keyboardType="decimal-pad"
         selectTextOnFocus
-        editable={!done}
         inputAccessoryViewID={Platform.OS === 'ios' ? NUMERIC_ACCESSORY_ID : undefined}
         accessibilityLabel={`Set ${label} weight`}
         style={inputStyle}
@@ -98,7 +98,6 @@ export const SetRow = memo(function SetRow({ set, label, previous, suggestion, o
         placeholderTextColor={colors.textTertiary}
         keyboardType="number-pad"
         selectTextOnFocus
-        editable={!done}
         inputAccessoryViewID={Platform.OS === 'ios' ? NUMERIC_ACCESSORY_ID : undefined}
         accessibilityLabel={`Set ${label} reps`}
         style={inputStyle}

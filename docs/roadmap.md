@@ -43,7 +43,8 @@ merged with tests and documentation.
 - [ ] Link email and Google accounts with the same address (pre-sign-up Lambda)
 
 ## Phase 5: Workflow features
-- [ ] Templates / routines
+- [x] Edit past workouts (reuses the logger in edit mode; same idempotent save, original times kept)
+- [ ] Templates / routines ("Repeat workout" covers the common case today)
 - [x] Rest timer: auto-starts on each completed set, ±15s / skip, haptic at the end, default length in Profile
 - [ ] Rest-over notification while the app is in the background
 - [ ] Progressive-overload suggestions

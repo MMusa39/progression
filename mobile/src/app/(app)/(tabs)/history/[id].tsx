@@ -17,7 +17,7 @@ export default function WorkoutDetailScreen() {
   const unit = useWeightUnit();
   const remove = useDeleteWorkout();
   const records = useWorkoutRecords(id);
-  const { repeat } = useStartWorkout();
+  const { repeat, editSaved } = useStartWorkout();
   const recordSetIds = new Set((records.data ?? []).map((r) => r.setId).filter(Boolean));
 
   if (workout.isPending) return <ActivityIndicator style={{ flex: 1 }} />;
@@ -84,6 +84,7 @@ export default function WorkoutDetailScreen() {
       ))}
 
       <Button title="Repeat this workout" icon="repeat" onPress={() => repeat(id)} />
+      <Button title="Edit workout" variant="secondary" icon="create-outline" onPress={() => editSaved(data)} />
       <Button title="Delete workout" variant="danger" icon="trash-outline" onPress={confirmDelete} loading={remove.isPending} />
       <Text variant="caption" color="textTertiary" align="center">
         Weights shown in the unit they were logged ({[...new Set(data.exercises.flatMap((e) => e.sets.map((s) => unitLabel(s.weightUnit))))].join(', ') || unitLabel(unit)}).

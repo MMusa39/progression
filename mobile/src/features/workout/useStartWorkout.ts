@@ -31,6 +31,18 @@ export function useStartWorkout() {
   };
 
   return {
+    /** Opens a saved workout in the logger. Refuses while another workout is in progress. */
+    editSaved: (workout: Workout) => {
+      if (useActiveWorkout.getState().active) {
+        Alert.alert('Workout in progress', 'Finish or discard your current workout before editing a past one.', [
+          { text: 'Go to current workout', onPress: () => router.push('/workout') },
+          { text: 'OK', style: 'cancel' },
+        ]);
+        return;
+      }
+      useActiveWorkout.getState().edit(workout);
+      router.push('/workout');
+    },
     startEmpty: () => confirmReplace(() => begin()),
     repeat: (workoutId: string) =>
       confirmReplace(async () => {

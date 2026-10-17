@@ -41,12 +41,19 @@ export type ActiveWorkout = {
   name: string;
   startedAt: string;
   exercises: DraftExercise[];
+  /**
+   * Set when an already-saved workout is being edited: its original end time is
+   * kept, and saving updates it in place (same id, same idempotent PUT).
+   */
+  editing?: { endedAt: string | null };
 };
 
 type ActiveWorkoutState = {
   active: ActiveWorkout | null;
 
   start: (options?: { name?: string; from?: Workout; unit?: WeightUnit }) => void;
+  /** Opens a saved workout for editing, keeping its ids, sets and times. */
+  edit: (workout: Workout) => void;
   discard: () => void;
   rename: (name: string) => void;
   addExercises: (exercises: DraftExercise['exercise'][], unit: WeightUnit) => void;
@@ -109,6 +116,30 @@ export const useActiveWorkout = create<ActiveWorkoutState>()(
                 notes: we.notes ?? '',
                 sets: we.sets.map((s) => newSet(s.weightUnit ?? unit, s.setType)),
               })) ?? [],
+          },
+        }),
+
+      edit: (workout) =>
+        set({
+          active: {
+            id: workout.id,
+            name: workout.name,
+            startedAt: workout.startedAt,
+            editing: { endedAt: workout.endedAt },
+            exercises: workout.exercises.map((we) => ({
+              id: we.id,
+              exercise: { id: we.exerciseId, name: we.exerciseName, muscleGroup: we.muscleGroup, equipment: we.equipment },
+              notes: we.notes ?? '',
+              sets: we.sets.map((s) => ({
+                id: s.id,
+                setType: s.setType,
+                weight: String(s.weight),
+                reps: String(s.reps),
+                weightUnit: s.weightUnit,
+                // Saved sets were done; keep them ticked so they're kept on save.
+                completedAt: s.completedAt ?? workout.startedAt,
+              })),
+            })),
           },
         }),
 
@@ -208,7 +239,8 @@ export const useActiveWorkout = create<ActiveWorkoutState>()(
         const request: WorkoutRequest = {
           name: active.name.trim() || defaultWorkoutName(new Date(active.startedAt)),
           startedAt: active.startedAt,
-          endedAt: now,
+          // Editing an old workout must not move its end time to "now".
+          endedAt: active.editing ? active.editing.endedAt : now,
           notes: null,
           updatedAt: now,
           // Only completed sets are saved; exercises left with no completed sets are dropped.

@@ -90,7 +90,8 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
             onToggleComplete={() => {
               const wasDone = set.completedAt !== null;
               const ok = toggleComplete(item.id, set.id, suggestions[i] ?? undefined);
-              if (ok && !wasDone) useRestTimer.getState().startDefault();
+              // No rest timer when fixing up a past workout.
+              if (ok && !wasDone && !useActiveWorkout.getState().active?.editing) useRestTimer.getState().startDefault();
               if (!ok) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 Alert.alert('Enter weight and reps', 'Fill in how much you lifted and for how many reps, then tick the set.');
