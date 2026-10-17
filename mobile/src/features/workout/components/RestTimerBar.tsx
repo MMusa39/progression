@@ -11,14 +11,19 @@ import { Text } from '@/components/ui';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
+import { requestPermission } from '@/features/notifications/notifications';
+import { usePermissionState } from '@/features/notifications/usePermissionState';
+
+import { syncRestNotification } from '../restNotifications';
 import { formatRest, remainingSeconds, useRestTimer } from '../restTimer';
 
 const DONE_MESSAGE_MS = 2500;
 
 export function RestTimerBar({ bottomInset }: { bottomInset: number }) {
   const { colors } = useTheme();
-  const { endsAt, totalSeconds, adjust, stop } = useRestTimer();
+  const { endsAt, totalSeconds, adjust, stop, alertWhenDone } = useRestTimer();
   const [now, setNow] = useState(() => Date.now());
+  const permission = usePermissionState();
 
   useEffect(() => {
     if (endsAt === null) return;
@@ -64,6 +69,21 @@ export function RestTimerBar({ bottomInset }: { bottomInset: number }) {
         )}
         <TimerButton label={finished ? 'Done' : 'Skip'} accessibilityLabel={finished ? 'Dismiss' : 'Skip rest'} onPress={stop} emphasized />
       </View>
+      {/* One-tap opt-in, asked in context: only while resting, only until answered. */}
+      {!finished && permission.state === 'undetermined' && alertWhenDone && (
+        <Pressable
+          onPress={async () => {
+            await requestPermission();
+            permission.refresh();
+            syncRestNotification(useRestTimer.getState().endsAt, true);
+          }}
+          accessibilityRole="button"
+          style={styles.notify}>
+          <Text variant="footnote" weight="600" color="accentText">
+            Notify me when rest is over, even if I leave the app
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -99,5 +119,6 @@ const styles = StyleSheet.create({
   track: { height: 3 },
   fill: { height: 3 },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg, paddingTop: space.md },
+  notify: { paddingHorizontal: space.lg, paddingTop: space.sm },
   button: { minWidth: 56, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.md },
 });

@@ -124,6 +124,38 @@ invalidation after mutations. Query keys live in one place (`queryKeys`).
 - A friend's workout uses the same `WorkoutDetail` component as your own
   history, read-only.
 
+### Notifications
+
+- **Rest-over alert:** a local notification scheduled when rest starts and
+  rescheduled or cancelled whenever the timer changes (`restNotifications.ts`
+  subscribes to the timer store). It's silent while the app is open, since the
+  in-app bar already buzzes. Works in Expo Go.
+- **Push** (friend requests, friends' PRs): the app registers its Expo push
+  token with the API on launch (only if permission was already given) and
+  removes it on sign-out. Tapping a notification opens the screen in its
+  `data.path`.
+- **Permission is asked in context, never on launch:** a one-line opt-in on
+  the rest timer bar, a card on the Friends tab, and a Notifications section in Profile.
+
+#### Turning on real push for your phone
+
+Rest alerts need nothing extra. Friend pushes need an Expo project, and on
+iPhone usually a development build:
+
+1. Create a free account at [expo.dev](https://expo.dev), then in `mobile/`:
+   ```bash
+   npx eas-cli@latest login
+   npx eas-cli@latest init      # adds extra.eas.projectId to app.json
+   ```
+2. Restart `npx expo start`, open **Profile → Turn on notifications**. If a
+   token registers in Expo Go, you're done.
+3. Otherwise build a development build (needs the paid Apple Developer
+   Program for push credentials):
+   ```bash
+   npx eas-cli@latest build --profile development --platform ios
+   npx expo start --dev-client
+   ```
+
 ### Progress charts
 
 - **One time range scopes everything** (`features/progress/range.ts`): presets

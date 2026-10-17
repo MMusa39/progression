@@ -8,12 +8,16 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
 import { useExercises, useMe } from '@/features/api/queries';
+import { configureNotificationHandler, registerForPush } from '@/features/notifications/notifications';
+import { useNotificationTaps } from '@/features/notifications/useNotificationTaps';
+import { startRestNotificationSync } from '@/features/workout/restNotifications';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
 import { useTheme } from '@/theme/useTheme';
 
 export default function AppLayout() {
   const { colors } = useTheme();
   useBackgroundSync();
+  useNotifications();
   // Warm the cache so the exercise picker and unit preference are ready instantly.
   useMe();
   useExercises();
@@ -39,6 +43,21 @@ export default function AppLayout() {
       />
     </Stack>
   );
+}
+
+configureNotificationHandler();
+
+/**
+ * Notification wiring for the signed-in app: tap routing, the rest-timer
+ * alert, and refreshing this device's push token if permission was already given.
+ */
+function useNotifications() {
+  useNotificationTaps();
+  useEffect(() => {
+    const stop = startRestNotificationSync();
+    registerForPush(); // silent: never prompts here
+    return stop;
+  }, []);
 }
 
 /** Uploads finished workouts now, and again every time the app returns to the foreground. */

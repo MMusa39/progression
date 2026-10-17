@@ -21,6 +21,9 @@ export type User = {
   weightUnit: WeightUnit;
   /** Whether friends can see individual workouts (PRs are always shared). */
   shareWorkouts: boolean;
+  /** Push preferences (delivered only if the device has notification permission). */
+  notifyFriendRequests: boolean;
+  notifyFriendPrs: boolean;
   createdAt: string;
 };
 

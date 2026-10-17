@@ -11,6 +11,7 @@ import type { Friend, FriendRequest } from '@/features/api/types';
 import { Avatar } from '@/features/friends/Avatar';
 import { handle, personName } from '@/features/friends/names';
 import { UsernameForm } from '@/features/friends/UsernameForm';
+import { NotificationPrompt } from '@/features/notifications/NotificationPrompt';
 import { shortDate } from '@/features/progress/dates';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -65,6 +66,8 @@ export default function FriendsScreen() {
           ),
         }}
       />
+
+      <NotificationPrompt />
 
       {incoming.length > 0 && <IncomingRequests requests={incoming} />}
 

@@ -9,6 +9,8 @@ import { useMe, useUpdateMe } from '@/features/api/queries';
 import type { WeightUnit } from '@/features/api/types';
 import { useSession } from '@/features/auth/AuthProvider';
 import { UsernameForm } from '@/features/friends/UsernameForm';
+import { NotificationSettings } from '@/features/notifications/NotificationSettings';
+import { unregisterPush } from '@/features/notifications/notifications';
 import { authSession } from '@/features/auth/session';
 import { formatRest, REST_OPTIONS, useRestTimer, type RestOption } from '@/features/workout/restTimer';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
@@ -44,7 +46,14 @@ export default function ProfileScreen() {
         : 'You can sign back in at any time. Your workouts are saved to your account.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign out', style: 'destructive', onPress: () => authSession.signOut() },
+        {
+          text: 'Sign out',
+          style: 'destructive',
+          onPress: async () => {
+            await unregisterPush(); // stop this phone getting the account's notifications
+            await authSession.signOut();
+          },
+        },
       ],
     );
 
@@ -128,6 +137,8 @@ export default function ProfileScreen() {
           />
         </View>
       </Card>
+
+      <NotificationSettings />
 
       <Card>
         <Text variant="headline">Rest timer</Text>

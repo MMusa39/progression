@@ -22,8 +22,11 @@ type RestTimerState = {
   endsAt: number | null;
   /** Length of the current rest in seconds (for the progress bar). */
   totalSeconds: number;
+  /** Send a notification when rest ends while the app isn't open. */
+  alertWhenDone: boolean;
 
   setDefault: (seconds: RestOption) => void;
+  setAlertWhenDone: (enabled: boolean) => void;
   /** Starts (or restarts) a rest using the default length. No-op when the timer is off. */
   startDefault: (now?: number) => void;
   /** Adds (or with a negative value, removes) time from the running rest. */
@@ -37,6 +40,9 @@ export const useRestTimer = create<RestTimerState>()(
       defaultSeconds: 120,
       endsAt: null,
       totalSeconds: 0,
+      alertWhenDone: true,
+
+      setAlertWhenDone: (enabled) => set({ alertWhenDone: enabled }),
 
       setDefault: (seconds) => set({ defaultSeconds: seconds, ...(seconds === 0 && { endsAt: null }) }),
 

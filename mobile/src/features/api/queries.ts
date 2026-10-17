@@ -88,7 +88,7 @@ export function useWeightUnit(): WeightUnit {
 export function useUpdateMe() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: { displayName?: string; weightUnit?: WeightUnit; username?: string; shareWorkouts?: boolean }) =>
+    mutationFn: (patch: Partial<Pick<User, 'displayName' | 'weightUnit' | 'shareWorkouts' | 'notifyFriendRequests' | 'notifyFriendPrs'>> & { username?: string }) =>
       apiRequest<User>('/api/v1/me', { method: 'PATCH', body: patch }),
     onSuccess: (user) => queryClient.setQueryData(queryKeys.me, user),
   });
