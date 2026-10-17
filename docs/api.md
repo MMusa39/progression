@@ -185,8 +185,9 @@ with a normalized `weightKg`, like sets.
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/nutrition/profile` | Goal inputs, or `204` if not set up. |
-| `PUT` | `/nutrition/profile` | `{ sex, birthYear, heightCm, activityLevel, goalWeight, weightUnit, goalDate, adaptive, currentWeight?, today }`. `currentWeight`, if given, is also logged as today's weigh-in. |
-| `GET` | `/nutrition/targets?today=` | `{ targets, currentWeightKg, goalWeightKg, goalDate, adaptiveLoggedDays }`, or `204` without a profile. `targets` has `calories`, `proteinG`, `carbsG`, `fatG`, `fiberG`, `waterMl`, `bmr`, `formulaTdee`, `tdee`, `tdeeSource` (`FORMULA` / `ADAPTIVE`), `weeklyRateKg`, `goal`, `rateCapped`, `atCalorieFloor`, `projectedGoalDate`. See [ADR 0010](adr/0010-food-tracking-and-targets.md) for the math. |
+| `PUT` | `/nutrition/profile` | `{ sex, birthYear, heightCm, activityLevel, goalWeight, weightUnit, goalDate, adaptive, currentWeight?, customMacros?, today }`. `currentWeight`, if given, is also logged as today's weigh-in. `customMacros: { proteinG, carbsG, fatG }` replaces the calculated macros (calories = 4/4/9 kcal per gram); omit or `null` for calculated targets. |
+| `GET` | `/nutrition/targets?today=` | `{ targets, currentWeightKg, goalWeightKg, goalDate, adaptiveLoggedDays }`, or `204` without a profile. `targets` has `calories`, `proteinG`, `carbsG`, `fatG`, `fiberG`, `waterMl`, `bmr`, `formulaTdee`, `tdee`, `tdeeSource` (`FORMULA` / `ADAPTIVE`), `weeklyRateKg`, `goal`, `rateCapped`, `atCalorieFloor`, `projectedGoalDate`, `mode` (`CALCULATED` / `CUSTOM`). See [ADR 0010](adr/0010-food-tracking-and-targets.md) for the math. |
+| `GET` | `/nutrition/trends?from=&today=` | Daily intake vs. today's targets: `{ from, to, days: [{ date, intake \| null }], goals, rules, summary }`. `summary` has `finishedDays`, `loggedDays`, `loggingStreak`, `average` and `onTarget: { calories, protein, carbs, fat }` (counts of logged days). The range starts no earlier than your first logged day; today is returned but not counted. Rules: calories ±10%, protein ≥ 90%, carbs/fat ±15% ([ADR 0011](adr/0011-nutrition-adherence.md)). |
 
 ### Foods
 

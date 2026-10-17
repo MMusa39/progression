@@ -64,6 +64,8 @@ merged with tests and documentation.
 - [x] Food diary: meals, quick add, copy previous day, recent foods, water (V7)
 - [x] Barcode scanning (expo-camera) with Open Food Facts lookup and caching; custom foods from a label
 - [x] Recipes, and sharing recipes with friends (save a copy) (V8)
+- [x] Nutrition trends: days on target per nutrient, daily/weekly bars vs. target zone, weekly table, logging streak (ADR 0011)
+- [x] My Plan screen (targets + details in one place), custom macro targets (V9)
 
 ## Phase 6: Offline-first sync
 - [ ] SQLite store on device, sync queue with retries, conflict handling

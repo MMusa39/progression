@@ -109,6 +109,12 @@ in their own columns. That gives the data one source of truth: editing an old
 set automatically corrects every chart and PR. If the queries ever become slow,
 a materialized summary table can be added without changing the API.
 
+### Custom macro targets (V9)
+
+- **`nutrition_profile`** gains `custom_protein_g`, `custom_carbs_g`,
+  `custom_fat_g`: all set (the user's own macros) or all NULL (calculated),
+  enforced by a check constraint. Calories are derived from them, never stored.
+
 ### Shared recipes (V8)
 
 - **`recipe`** gains `shared` (default `false`) and `copied_from` (the friend's

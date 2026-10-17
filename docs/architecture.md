@@ -164,6 +164,9 @@ network.
   [ADR 0010](adr/0010-food-tracking-and-targets.md).
 - **Diary entries snapshot their nutrition** when logged; history never
   changes when a food or recipe does.
+- **Trends** (`NutritionTrends`) judge each logged day against the targets
+  with server-side rules that are sent along with the data, so the app's chart
+  bands and the counts always agree ([ADR 0011](adr/0011-nutrition-adherence.md)).
 - **Targets are computed on request** (`TargetCalculator`) from the profile,
   the weigh-in trend and the last 28 days of diary, the same "derived, never
   stored" rule as PRs.

@@ -48,7 +48,8 @@ answer those questions for you.
 | Food diary | Breakfast / lunch / dinner / snacks with calories, protein, carbs, fat and fiber against your targets. Search foods, re-log recents, copy a previous day's meal, quick-add calories, track water. |
 | Barcode scanning | Scan a product to log it (Open Food Facts, 3M+ products). Unknown barcodes can be added from the label once and are found next time. |
 | Recipes | Build a recipe from ingredients, log servings in one tap, and share it with friends, who can save their own copy. |
-| Calorie & macro targets | From sex, age, height, weight, goal weight, timeline and activity, with safe-pace limits, and adaptive maintenance that learns from what you log and how your weight responds. |
+| Calorie & macro targets | From sex, age, height, weight, goal weight, timeline and activity, with safe-pace limits, and adaptive maintenance that learns from what you log and how your weight responds. Or enter your own macros (e.g. from a coach). Everything lives on one **My Plan** screen. |
+| Nutrition trends | How consistently you hit calories, protein, carbs and fat: "18 of 26 days on target", a bar per day against your target zone, weekly averages, and your logging streak. |
 | Overload hints | Suggests when to add weight based on your recent performance. |
 | Offline-first | Gyms have bad signal; workouts are saved on the phone and synced when possible. |
 

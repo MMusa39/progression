@@ -17,3 +17,4 @@ supersedes the old one, so the history of *why* is preserved.
 | [0008](0008-friends-and-privacy.md) | Mutual friends, private by default, and two kinds of leaderboard | Accepted |
 | [0009](0009-push-notifications.md) | Push via Expo, triggered by domain events after commit | Accepted |
 | [0010](0010-food-tracking-and-targets.md) | Food tracking: Open Food Facts, snapshotted entries, adaptive targets | Accepted |
+| [0011](0011-nutrition-adherence.md) | Measure nutrition consistency as "days on target", not averages alone | Accepted |
