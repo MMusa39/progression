@@ -49,6 +49,13 @@ merged with tests and documentation.
 - [ ] Rest-over notification while the app is in the background
 - [ ] Progressive-overload suggestions
 
+## Phase 5b: Friends
+- [x] Usernames, mutual friend requests, invite links/codes (V4 migration)
+- [x] Friend profiles: streak, recent PRs, workouts (respecting "share workouts")
+- [x] Leaderboards: consistency (crowns a winner), strength per lift (ranking only)
+- [x] Privacy: non-friends see nothing (404); "PRs only" sharing (403 on workouts)
+- [ ] Push notifications for friend requests and friends' PRs
+
 ## Phase 6: Offline-first sync
 - [ ] SQLite store on device, sync queue with retries, conflict handling
 

@@ -139,6 +139,18 @@ network.
   timestamp. The server rejects a write older than what it already holds
   (`409 Conflict`), and the client then refetches.
 
+### Friends and privacy
+
+- Friendships are mutual (request → accept, or an invite link that connects
+  immediately). See [ADR 0008](adr/0008-friends-and-privacy.md).
+- **Access is checked in one place** (`FriendService.requireFriends` /
+  `requireWorkoutAccess`) before any friend data is read. Non-friends get
+  404, so a stranger can't learn whether an account has data. Friends who
+  share PRs only get 403 on workouts.
+- Friend views reuse the existing workout and stats services through
+  owner-id variants (`listForOwner`, `recentRecordsOf`), so there's no
+  duplicated query logic. Leaderboards compute everyone in one SQL query.
+
 ### Error handling
 
 All errors are returned as [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)

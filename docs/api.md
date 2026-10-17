@@ -120,6 +120,38 @@ Example `GET /api/v1/stats/records?from=2026-09-18T04:00:00Z`:
 ]
 ```
 
+### Friends
+
+Friendships are **mutual**: one person requests, the other accepts. Everything
+here is scoped to accepted friends. A non-friend gets `404` for any friend
+endpoint, so the API never confirms what a stranger has logged.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `PATCH` | `/me` | Also sets `username` (3–20 chars: a–z, 0–9, `_`, `.`; stored lowercase, unique) and `shareWorkouts`. |
+| `GET` | `/users/search?q=` | Username prefix search (min 2 chars) with your `relationship` to each result: `NONE`, `REQUEST_SENT`, `REQUEST_RECEIVED`, `FRIENDS`. |
+| `POST` | `/friends/requests` | `{ "username": "mike" }`. Sends a request, or accepts theirs if they already asked you. Requires your own username. |
+| `GET` | `/friends/requests` | `{ incoming, outgoing }` pending requests. |
+| `POST` | `/friends/requests/{id}/accept` | Accept an incoming request. |
+| `DELETE` | `/friends/requests/{id}` | Decline (incoming) or cancel (outgoing). |
+| `GET` | `/friends/invite` | Your invite code (8 characters, no look-alike characters). The app shares it as `progression://invite/CODE`. |
+| `POST` | `/friends/invite/reset` | New code; old links stop working. |
+| `GET` / `POST` | `/friends/invite/{code}` | Preview whose invite it is / use it. Using it connects you **immediately**: sharing the link is the owner's consent. |
+| `GET` | `/friends?tz=` | Friends with `currentStreakWeeks`, `workoutsLast4Weeks`, `lastWorkoutAt`, `shareWorkouts`. |
+| `GET` / `DELETE` | `/friends/{id}` | One friend's summary / unfriend. |
+| `GET` | `/friends/{id}/records?from=` | A friend's PRs. Always shared with friends. |
+| `GET` | `/friends/{id}/workouts`, `/friends/{id}/workouts/{workoutId}` | A friend's history and workouts. `403` if they've turned `shareWorkouts` off. |
+
+### Leaderboards
+
+Among you and your friends.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/leaderboards/consistency?tz=` | Ranked by weekly streak, then workouts in the last 4 weeks. Ties share a rank, and `winner` is true for everyone at rank 1 who has trained. |
+| `GET` | `/leaderboards/strength/exercises` | Catalog lifts anyone in the group has logged (weighted only), most shared first. |
+| `GET` | `/leaderboards/strength?exerciseId=` | Best estimated 1RM per person on one lift (defaults to the most shared lift), with the set that produced it. A ranking with **no winner**. |
+
 ### Templates
 
 | Method | Path | Description |

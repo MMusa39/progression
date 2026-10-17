@@ -102,6 +102,17 @@ in their own columns. That gives the data one source of truth: editing an old
 set automatically corrects every chart and PR. If the queries ever become slow,
 a materialized summary table can be added without changing the API.
 
+### Friends (V4)
+
+- **`app_user`** gains `username` (unique, lowercase, `^[a-z0-9_.]{3,20}$`),
+  `share_workouts` (default `true`) and `invite_code` (unique, nullable until
+  first requested).
+- **`friendship`**: `requester_id`, `addressee_id`, `status` (`PENDING` /
+  `ACCEPTED`), `created_at`, `accepted_at`. A unique index on
+  `(LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id))`
+  allows **one row per pair** regardless of who asked whom, so "A→B" and
+  "B→A" can't both exist.
+
 ### Analytics building blocks (V3)
 
 - **`estimated_one_rep_max(weight_kg, reps)`**: an immutable SQL function
