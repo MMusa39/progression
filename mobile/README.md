@@ -52,15 +52,19 @@ src/
 │   └── (app)/                   Signed-in area
 │       ├── _layout.tsx          Stack: tabs + modals, background sync
 │       ├── (tabs)/              Native tab bar: (home) Workout · history · progress · profile
+│       ├── (tabs)/progress/     Progress overview + per-exercise charts ([exerciseId].tsx)
 │       ├── workout.tsx          Active workout logger (modal sheet)
+│       ├── workout-complete.tsx Session summary + personal-record celebration
 │       └── exercise-picker.tsx  Search/filter/multi-select, create custom exercises
+├── components/charts/           SVG charts: LineChart, ColumnChart, HorizontalBars, Sparkline, DataTable
 ├── components/ui/               Design-system components (Button, TextField, Card, ...)
 ├── theme/                       Design tokens (color, spacing, type) + useTheme
 ├── config/env.ts                Runtime config from EXPO_PUBLIC_* variables
 ├── features/
 │   ├── auth/                    Cognito client, Google OAuth (PKCE), secure session, dev sign-in
 │   ├── api/                     HTTP client, API types, TanStack Query hooks
-│   └── workout/                 Active-workout store, upload queue, formatting, workout UI
+│   ├── workout/                 Active-workout store, upload queue, formatting, workout UI
+│   └── progress/                Time-range store + filter, chart metrics, KPI tiles, PR display
 └── lib/                         Small framework-free helpers (JWT decode, query client)
 ```
 
@@ -98,6 +102,26 @@ signed-in halves of the app whenever the session changes.
 TanStack Query owns everything fetched from the API: caching, background
 refetch, pagination (`useInfiniteQuery` over the cursor-paginated history), and
 invalidation after mutations. Query keys live in one place (`queryKeys`).
+
+### Progress charts
+
+- **One time range scopes everything** (`features/progress/range.ts`): presets
+  4W / 3M / 6M / 1Y / All, or a custom "last N weeks/months". The selection is
+  shared between the overview and every exercise screen and persisted.
+- **Charts** (`components/charts/`) are small custom SVG components following
+  the project's dataviz rules: one series per chart in a contrast-validated
+  color, 2px lines with ringed markers, ≤24px columns with rounded tops, solid
+  hairline gridlines, and a **fixed readout** that shows the latest value and
+  follows your finger as you drag across the chart. Every chart has a
+  **"Show data" table** so no value is only reachable by touch. See ADR 0006.
+- While a new range loads, the previous charts stay on screen, dimmed
+  (`keepPreviousData`), so there's no flash or layout jump.
+- **Personal records** come from the server after a workout uploads. The
+  "Workout complete" screen celebrates them, and History marks the record sets.
+
+To preview with data: run the API, then `python3 ../backend/scripts/seed_dev_data.py`,
+then sign in with the development account. `npx expo start --web` runs the app in
+a desktop browser for quick visual checks.
 
 ### Design system
 

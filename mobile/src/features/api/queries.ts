@@ -7,6 +7,7 @@
  * exactly the data they change.
  */
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -14,7 +15,21 @@ import {
 } from '@tanstack/react-query';
 
 import { apiRequest } from './client';
-import type { Exercise, LastPerformance, MuscleGroup, Equipment, Page, User, WeightUnit, Workout, WorkoutSummary } from './types';
+import type {
+  Equipment,
+  Exercise,
+  ExerciseProgression,
+  ExerciseStats,
+  LastPerformance,
+  MuscleGroup,
+  Page,
+  PersonalRecord,
+  StatsSummary,
+  User,
+  WeightUnit,
+  Workout,
+  WorkoutSummary,
+} from './types';
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -23,6 +38,12 @@ export const queryKeys = {
   workout: (id: string) => ['workouts', id] as const,
   lastPerformance: (exerciseId: string, excludeWorkoutId?: string) =>
     ['last-performance', exerciseId, excludeWorkoutId ?? null] as const,
+  workoutRecords: (id: string) => ['workouts', id, 'records'] as const,
+  /** Everything under ['stats'] is invalidated whenever workouts change. */
+  stats: ['stats'] as const,
+  statsSummary: (from: string | null, tz: string) => ['stats', 'summary', from, tz] as const,
+  exerciseStats: ['stats', 'exercises'] as const,
+  progression: (exerciseId: string, from: string | null) => ['stats', 'progression', exerciseId, from] as const,
 };
 
 // ------------------------------------------------------------------ user
@@ -116,6 +137,54 @@ export function useDeleteWorkout() {
       queryClient.removeQueries({ queryKey: queryKeys.workout(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.workouts });
       queryClient.invalidateQueries({ queryKey: ['last-performance'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats });
     },
+  });
+}
+
+// ------------------------------------------------------------------ stats
+
+/**
+ * Overview for the Progress tab. `placeholderData: keepPreviousData` keeps the
+ * previous range's charts on screen while a new range loads (dimmed by the
+ * screen), so switching ranges never flashes empty.
+ */
+export function useStatsSummary(from: Date | null, tz: string) {
+  const fromIso = from?.toISOString() ?? null;
+  return useQuery({
+    queryKey: queryKeys.statsSummary(fromIso, tz),
+    queryFn: () =>
+      apiRequest<StatsSummary>(
+        `/api/v1/stats/summary?tz=${encodeURIComponent(tz)}${fromIso ? `&from=${encodeURIComponent(fromIso)}` : ''}`,
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useExerciseStats() {
+  return useQuery({
+    queryKey: queryKeys.exerciseStats,
+    queryFn: () => apiRequest<ExerciseStats[]>('/api/v1/stats/exercises'),
+  });
+}
+
+export function useExerciseProgression(exerciseId: string, from: Date | null) {
+  const fromIso = from?.toISOString() ?? null;
+  return useQuery({
+    queryKey: queryKeys.progression(exerciseId, fromIso),
+    queryFn: () =>
+      apiRequest<ExerciseProgression>(
+        `/api/v1/stats/exercises/${exerciseId}/progression${fromIso ? `?from=${encodeURIComponent(fromIso)}` : ''}`,
+      ),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Personal records set in a workout. Disabled until the workout has been uploaded. */
+export function useWorkoutRecords(workoutId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.workoutRecords(workoutId),
+    queryFn: () => apiRequest<PersonalRecord[]>(`/api/v1/workouts/${workoutId}/records`),
+    enabled,
   });
 }

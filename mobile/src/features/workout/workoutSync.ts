@@ -63,6 +63,7 @@ export const useWorkoutSync = create<SyncState>()(
           set({ syncing: false });
           queryClient.invalidateQueries({ queryKey: queryKeys.workouts });
           queryClient.invalidateQueries({ queryKey: ['last-performance'] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.stats });
         }
       },
 

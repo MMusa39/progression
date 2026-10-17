@@ -1,4 +1,4 @@
-import { formatDuration, formatElapsed, formatSet, formatVolume, formatWeight } from '@/features/workout/format';
+import { formatDuration, formatElapsed, formatSet, formatVolume, formatVolumeCompact, formatWeight } from '@/features/workout/format';
 
 describe('format', () => {
   it('drops trailing zeros from weights', () => {
@@ -16,6 +16,12 @@ describe('format', () => {
   it('converts volume into the preferred unit', () => {
     expect(formatVolume(1000, 'KG')).toBe('1,000 kg');
     expect(formatVolume(453.59237, 'LB')).toBe('1,000 lb');
+  });
+
+  it('compacts large volumes for tiles', () => {
+    expect(formatVolumeCompact(11_079, 'LB')).toBe('24.4K lb');
+    expect(formatVolumeCompact(450, 'KG')).toBe('450 kg');
+    expect(formatVolumeCompact(100_000, 'KG')).toBe('100K kg');
   });
 
   it('formats a live timer', () => {

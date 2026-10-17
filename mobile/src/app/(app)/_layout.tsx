@@ -23,6 +23,7 @@ export default function AppLayout() {
       <Stack.Screen name="(tabs)" />
       {/* Active workout: a full-height sheet that can be swiped down and resumed later. */}
       <Stack.Screen name="workout" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="workout-complete" options={{ presentation: 'modal' }} />
       <Stack.Screen
         name="exercise-picker"
         options={{

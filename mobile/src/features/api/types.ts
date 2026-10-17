@@ -97,3 +97,67 @@ export type ProblemDetail = {
   detail?: string;
   errors?: { field: string; message: string }[];
 };
+
+// ------------------------------------------------------------------ stats
+
+export type Bucket = 'WEEK' | 'MONTH';
+
+export type StatsTotals = { workouts: number; sets: number; reps: number; volumeKg: number };
+
+export type StatsSummary = {
+  from: string | null;
+  bucket: Bucket;
+  totals: StatsTotals;
+  previousTotals: StatsTotals | null;
+  currentStreakWeeks: number;
+  buckets: { start: string; workouts: number; sets: number; volumeKg: number }[];
+  muscleGroups: { muscleGroup: MuscleGroup; sets: number }[];
+};
+
+export type ExerciseStats = {
+  exerciseId: string;
+  exerciseName: string;
+  muscleGroup: MuscleGroup;
+  equipment: Equipment;
+  sessions: number;
+  lastPerformedAt: string;
+  bestE1rmKg: number;
+  bestE1rmAt: string;
+  heaviestWeightKg: number;
+  bestReps: number;
+  recentBestE1rmKg: number[];
+};
+
+export type ProgressionPoint = {
+  workoutId: string;
+  performedAt: string;
+  bestE1rmKg: number;
+  topSetWeightKg: number;
+  topSetReps: number;
+  volumeKg: number;
+  totalReps: number;
+  bestReps: number;
+  setCount: number;
+};
+
+export type ExerciseProgression = {
+  exerciseId: string;
+  exerciseName: string;
+  muscleGroup: MuscleGroup;
+  equipment: Equipment;
+  points: ProgressionPoint[];
+};
+
+export type RecordType = 'ESTIMATED_1RM' | 'HEAVIEST_WEIGHT' | 'SESSION_VOLUME';
+
+export type PersonalRecord = {
+  exerciseId: string;
+  exerciseName: string;
+  type: RecordType;
+  setId: string | null;
+  valueKg: number;
+  previousKg: number;
+  weight: number | null;
+  weightUnit: WeightUnit | null;
+  reps: number | null;
+};

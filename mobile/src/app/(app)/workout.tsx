@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Icon, Text } from '@/components/ui';
 import { useWeightUnit } from '@/features/api/queries';
 import { useActiveWorkout, workoutProgress } from '@/features/workout/activeWorkoutStore';
+import { summarize, useLastFinished } from '@/features/workout/lastFinished';
 import { ElapsedTimer } from '@/features/workout/components/ElapsedTimer';
 import { ExerciseCard } from '@/features/workout/components/ExerciseCard';
 import { NUMERIC_ACCESSORY_ID } from '@/features/workout/components/SetRow';
@@ -62,13 +63,15 @@ export default function ActiveWorkoutScreen() {
         {
           text: 'Finish',
           onPress: () => {
+            useLastFinished.getState().set(summarize(active));
             const result = useActiveWorkout.getState().finish();
             if (!result) return;
             const sync = useWorkoutSync.getState();
             sync.enqueue(result);
             sync.flush(queryClient);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            router.back();
+            // Swap this sheet for the summary, which shows any personal records once the upload lands.
+            router.replace({ pathname: '/workout-complete', params: { id: result.id } });
           },
         },
       ],

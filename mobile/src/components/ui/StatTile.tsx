@@ -13,7 +13,8 @@ export function StatTile({ label, value }: { label: string; value: string }) {
       <Text variant="caption" color="textSecondary">
         {label.toUpperCase()}
       </Text>
-      <Text variant="number" style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
+      {/* Proportional digits: tabular figures are for aligned columns, not standalone values. */}
+      <Text variant="title2" style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
         {value}
       </Text>
     </View>

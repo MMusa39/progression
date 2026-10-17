@@ -31,6 +31,13 @@ export const palettes = {
     inputBackground: '#1E1E24',
     google: '#FFFFFF',
     onGoogle: '#1F1F1F',
+    /**
+     * Data marks (lines, bars). A calmer lime step than `accent`, validated with
+     * the dataviz palette checks: OKLCH L 0.67 (inside the dark band) and >= 3:1 vs `surface`.
+     */
+    chart: '#84A31A',
+    chartWash: 'rgba(132, 163, 26, 0.10)',
+    gridline: '#26262D',
   },
   light: {
     background: '#F4F4F6',
@@ -50,6 +57,10 @@ export const palettes = {
     inputBackground: '#FFFFFF',
     google: '#FFFFFF',
     onGoogle: '#1F1F1F',
+    /** Validated: OKLCH L inside the light band, 4.3:1 vs white `surface`. */
+    chart: '#5A8700',
+    chartWash: 'rgba(90, 135, 0, 0.10)',
+    gridline: '#ECECF0',
   },
 } as const;
 

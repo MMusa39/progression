@@ -6,12 +6,11 @@
  * components. React reads it through `AuthProvider` (useSyncExternalStore).
  *
  * Storage: tokens live in the iOS Keychain / Android Keystore via
- * expo-secure-store, never in AsyncStorage. Each token goes under its own key
+ * expo-secure-store (see lib/secureStorage), never in AsyncStorage. Each token goes under its own key
  * to stay within SecureStore's per-value size limit.
  */
-import * as SecureStore from 'expo-secure-store';
-
 import { decodeJwt } from '@/lib/jwt';
+import { secureStorage } from '@/lib/secureStorage';
 
 import * as cognito from './cognito';
 
@@ -87,15 +86,15 @@ function userFrom(stored: StoredSession): SessionUser {
 
 async function persist(stored: StoredSession | null) {
   if (!stored) {
-    await Promise.all(Object.values(KEYS).map((key) => SecureStore.deleteItemAsync(key)));
+    await Promise.all(Object.values(KEYS).map((key) => secureStorage.deleteItem(key)));
     return;
   }
-  await SecureStore.setItemAsync(KEYS.meta, JSON.stringify({ provider: stored.provider, expiresAt: stored.expiresAt }));
-  await SecureStore.setItemAsync(KEYS.access, stored.accessToken);
-  await (stored.idToken ? SecureStore.setItemAsync(KEYS.id, stored.idToken) : SecureStore.deleteItemAsync(KEYS.id));
+  await secureStorage.setItem(KEYS.meta, JSON.stringify({ provider: stored.provider, expiresAt: stored.expiresAt }));
+  await secureStorage.setItem(KEYS.access, stored.accessToken);
+  await (stored.idToken ? secureStorage.setItem(KEYS.id, stored.idToken) : secureStorage.deleteItem(KEYS.id));
   await (stored.refreshToken
-    ? SecureStore.setItemAsync(KEYS.refresh, stored.refreshToken)
-    : SecureStore.deleteItemAsync(KEYS.refresh));
+    ? secureStorage.setItem(KEYS.refresh, stored.refreshToken)
+    : secureStorage.deleteItem(KEYS.refresh));
 }
 
 async function refresh(): Promise<string> {
@@ -149,10 +148,10 @@ export const authSession = {
   async load(): Promise<void> {
     try {
       const [meta, accessToken, idToken, refreshToken] = await Promise.all([
-        SecureStore.getItemAsync(KEYS.meta),
-        SecureStore.getItemAsync(KEYS.access),
-        SecureStore.getItemAsync(KEYS.id),
-        SecureStore.getItemAsync(KEYS.refresh),
+        secureStorage.getItem(KEYS.meta),
+        secureStorage.getItem(KEYS.access),
+        secureStorage.getItem(KEYS.id),
+        secureStorage.getItem(KEYS.refresh),
       ]);
       if (meta && accessToken) {
         const { provider, expiresAt } = JSON.parse(meta) as Pick<StoredSession, 'provider' | 'expiresAt'>;
