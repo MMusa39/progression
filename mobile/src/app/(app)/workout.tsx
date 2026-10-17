@@ -28,7 +28,9 @@ import { useActiveWorkout, workoutProgress } from '@/features/workout/activeWork
 import { summarize, useLastFinished } from '@/features/workout/lastFinished';
 import { ElapsedTimer } from '@/features/workout/components/ElapsedTimer';
 import { ExerciseCard } from '@/features/workout/components/ExerciseCard';
+import { RestTimerBar } from '@/features/workout/components/RestTimerBar';
 import { NUMERIC_ACCESSORY_ID } from '@/features/workout/components/SetRow';
+import { useRestTimer } from '@/features/workout/restTimer';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
 import { space, typography } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -63,6 +65,7 @@ export default function ActiveWorkoutScreen() {
         {
           text: 'Finish',
           onPress: () => {
+            useRestTimer.getState().stop();
             useLastFinished.getState().set(summarize(active));
             const result = useActiveWorkout.getState().finish();
             if (!result) return;
@@ -79,6 +82,7 @@ export default function ActiveWorkoutScreen() {
   };
 
   function discard() {
+    useRestTimer.getState().stop();
     useActiveWorkout.getState().discard();
     router.back();
   }
@@ -101,7 +105,8 @@ export default function ActiveWorkoutScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxxl }]}
+        // Extra bottom space so the rest timer bar never covers the last set.
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets>
@@ -137,6 +142,8 @@ export default function ActiveWorkoutScreen() {
         <Button title="Add exercises" icon="add-circle-outline" variant="secondary" onPress={() => router.push('/exercise-picker')} />
         <Button title="Discard workout" variant="ghost" onPress={confirmDiscard} style={{ marginTop: space.lg }} />
       </ScrollView>
+
+      <RestTimerBar bottomInset={insets.bottom} />
 
       {Platform.OS === 'ios' && (
         <InputAccessoryView nativeID={NUMERIC_ACCESSORY_ID}>

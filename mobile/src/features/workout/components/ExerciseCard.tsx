@@ -12,6 +12,7 @@ import type { WeightUnit } from '@/features/api/types';
 import { space } from '@/theme/tokens';
 
 import { useActiveWorkout, type DraftExercise, type DraftSet } from '../activeWorkoutStore';
+import { useRestTimer } from '../restTimer';
 import { formatSet, formatWeight, muscleGroupLabel, unitLabel } from '../format';
 import { SetRow, SetTableHeader, type Suggestion } from './SetRow';
 
@@ -87,7 +88,9 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
             onChange={(patch) => updateSet(item.id, set.id, patch)}
             onRemove={() => removeSet(item.id, set.id)}
             onToggleComplete={() => {
+              const wasDone = set.completedAt !== null;
               const ok = toggleComplete(item.id, set.id, suggestions[i] ?? undefined);
+              if (ok && !wasDone) useRestTimer.getState().startDefault();
               if (!ok) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 Alert.alert('Enter weight and reps', 'Fill in how much you lifted and for how many reps, then tick the set.');

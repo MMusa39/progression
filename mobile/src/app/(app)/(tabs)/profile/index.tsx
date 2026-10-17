@@ -8,6 +8,7 @@ import { useMe, useUpdateMe } from '@/features/api/queries';
 import type { WeightUnit } from '@/features/api/types';
 import { useSession } from '@/features/auth/AuthProvider';
 import { authSession } from '@/features/auth/session';
+import { formatRest, REST_OPTIONS, useRestTimer, type RestOption } from '@/features/workout/restTimer';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
 import { radius, space } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
@@ -20,6 +21,7 @@ export default function ProfileScreen() {
   const me = useMe();
   const updateMe = useUpdateMe();
   const pendingUploads = useWorkoutSync((s) => s.pending.length);
+  const restDefault = useRestTimer((s) => s.defaultSeconds);
 
   if (session.status !== 'signedIn') return null;
   const { user } = session;
@@ -83,6 +85,19 @@ export default function ProfileScreen() {
           ]}
           value={me.data?.weightUnit ?? 'LB'}
           onChange={(weightUnit) => updateMe.mutate({ weightUnit })}
+        />
+      </Card>
+
+      <Card>
+        <Text variant="headline">Rest timer</Text>
+        <Text variant="footnote" color="textSecondary">
+          Starts automatically when you tick off a set.
+        </Text>
+        <SegmentedControl<string>
+          accessibilityLabel="Default rest time"
+          options={REST_OPTIONS.map((seconds) => ({ value: String(seconds), label: formatRest(seconds) }))}
+          value={String(restDefault)}
+          onChange={(value) => useRestTimer.getState().setDefault(Number(value) as RestOption)}
         />
       </Card>
 

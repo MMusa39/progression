@@ -44,7 +44,8 @@ merged with tests and documentation.
 
 ## Phase 5: Workflow features
 - [ ] Templates / routines
-- [ ] Rest timer with notifications
+- [x] Rest timer: auto-starts on each completed set, ±15s / skip, haptic at the end, default length in Profile
+- [ ] Rest-over notification while the app is in the background
 - [ ] Progressive-overload suggestions
 
 ## Phase 6: Offline-first sync

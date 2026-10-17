@@ -96,6 +96,9 @@ signed-in halves of the app whenever the session changes.
   an **upload queue** (`workoutSync.ts`) and is sent with
   `PUT /api/v1/workouts/{id}`. That call is idempotent, so failed uploads can be
   retried safely (on next launch / app foreground).
+- Ticking off a set starts the **rest timer** (`restTimer.ts`). It stores an
+  absolute deadline rather than a countdown, so it stays correct if the app
+  is backgrounded or reloaded.
 - Each exercise fetches its **last performance**, which fills the PREVIOUS
   column and the grey suggestions. Tapping ✓ on an empty set logs the
   suggestion, so repeating last week's numbers takes one tap per set.

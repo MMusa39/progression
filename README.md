@@ -39,7 +39,7 @@ answer those questions for you.
 | Personal records | Automatic detection of new PRs (heaviest weight, best estimated 1RM), celebrated when you finish, listed on the Progress tab, and badged in history. |
 | Streaks | Consecutive weeks trained, counted in your own time zone. |
 | Templates | Save routines like "Push Day" and start a workout pre-filled from the last time you ran it. |
-| Rest timer | Starts automatically after each completed set. |
+| Rest timer | Starts automatically when you tick off a set; adjust ±15s or skip; buzzes when rest is over. Default length set in Profile. |
 | Overload hints | Suggests when to add weight based on your recent performance. |
 | Offline-first | Gyms have bad signal; workouts are saved on the phone and synced when possible. |
 
