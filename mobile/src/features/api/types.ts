@@ -89,6 +89,19 @@ export type WorkoutSummary = {
 
 export type Page<T> = { items: T[]; nextCursor: string | null };
 
+export type RoutineExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  muscleGroup: MuscleGroup;
+  equipment: Equipment;
+  sets: number;
+  repMin: number;
+  repMax: number;
+};
+
+/** A reusable workout plan (GET /routines). */
+export type Routine = { id: string; name: string; notes: string | null; exercises: RoutineExercise[] };
+
 export type LastPerformance = {
   workoutId: string;
   workoutName: string;

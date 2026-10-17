@@ -15,7 +15,7 @@ import { randomUUID } from 'expo-crypto';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { Exercise, SetType, WeightUnit, Workout, WorkoutRequest } from '@/features/api/types';
+import type { Exercise, Routine, SetType, WeightUnit, Workout, WorkoutRequest } from '@/features/api/types';
 
 import { defaultWorkoutName } from './format';
 
@@ -34,6 +34,8 @@ export type DraftExercise = {
   exercise: Pick<Exercise, 'id' | 'name' | 'muscleGroup' | 'equipment'>;
   notes: string;
   sets: DraftSet[];
+  /** From a routine: the plan for this exercise. Drives the target line and overload hints. */
+  target?: { sets: number; repMin: number; repMax: number };
 };
 
 export type ActiveWorkout = {
@@ -51,7 +53,8 @@ export type ActiveWorkout = {
 type ActiveWorkoutState = {
   active: ActiveWorkout | null;
 
-  start: (options?: { name?: string; from?: Workout; unit?: WeightUnit }) => void;
+  /** Starts empty, repeating a past workout (`from`), or from a routine. */
+  start: (options?: { name?: string; from?: Workout; routine?: Routine; unit?: WeightUnit }) => void;
   /** Opens a saved workout for editing, keeping its ids, sets and times. */
   edit: (workout: Workout) => void;
   discard: () => void;
@@ -102,20 +105,29 @@ export const useActiveWorkout = create<ActiveWorkoutState>()(
     (set, get) => ({
       active: null,
 
-      start: ({ name, from, unit = 'LB' } = {}) =>
+      start: ({ name, from, routine, unit = 'LB' } = {}) =>
         set({
           active: {
             id: randomUUID(),
-            name: name ?? from?.name ?? defaultWorkoutName(),
+            name: name ?? routine?.name ?? from?.name ?? defaultWorkoutName(),
             startedAt: new Date().toISOString(),
-            // "Repeat workout": same exercises and set count, blank values (last time's numbers show as hints).
-            exercises:
-              from?.exercises.map((we) => ({
-                id: randomUUID(),
-                exercise: { id: we.exerciseId, name: we.exerciseName, muscleGroup: we.muscleGroup, equipment: we.equipment },
-                notes: we.notes ?? '',
-                sets: we.sets.map((s) => newSet(s.weightUnit ?? unit, s.setType)),
-              })) ?? [],
+            // Routine: its exercises with the planned number of sets and the rep range as a target.
+            // "Repeat workout": same exercises and set count. Either way values start blank
+            // (last time's numbers, or the overload hint, show as suggestions).
+            exercises: routine
+              ? routine.exercises.map((re) => ({
+                  id: randomUUID(),
+                  exercise: { id: re.exerciseId, name: re.exerciseName, muscleGroup: re.muscleGroup, equipment: re.equipment },
+                  notes: '',
+                  sets: Array.from({ length: re.sets }, () => newSet(unit)),
+                  target: { sets: re.sets, repMin: re.repMin, repMax: re.repMax },
+                }))
+              : (from?.exercises.map((we) => ({
+                  id: randomUUID(),
+                  exercise: { id: we.exerciseId, name: we.exerciseName, muscleGroup: we.muscleGroup, equipment: we.equipment },
+                  notes: we.notes ?? '',
+                  sets: we.sets.map((s) => newSet(s.weightUnit ?? unit, s.setType)),
+                })) ?? []),
           },
         }),
 

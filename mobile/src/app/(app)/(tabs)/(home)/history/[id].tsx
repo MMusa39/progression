@@ -48,6 +48,12 @@ export default function WorkoutDetailScreen() {
       />
       <Button title="Repeat this workout" icon="repeat" onPress={() => repeat(id)} />
       <Button title="Edit workout" variant="secondary" icon="create-outline" onPress={() => editSaved(data)} />
+      <Button
+        title="Save as routine"
+        variant="secondary"
+        icon="bookmark-outline"
+        onPress={() => router.push({ pathname: '/routine/[id]', params: { id: 'new', from: id } })}
+      />
       <Button title="Delete workout" variant="danger" icon="trash-outline" onPress={confirmDelete} loading={remove.isPending} />
       <Text variant="caption" color="textTertiary" align="center">
         Weights shown in the unit they were logged ({[...new Set(data.exercises.flatMap((e) => e.sets.map((s) => unitLabel(s.weightUnit))))].join(', ') || unitLabel(unit)}).

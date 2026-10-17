@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 
 import { apiRequest } from '@/features/api/client';
 import { queryKeys, useWeightUnit } from '@/features/api/queries';
-import type { Workout } from '@/features/api/types';
+import type { Routine, Workout } from '@/features/api/types';
 
 import { useActiveWorkout } from './activeWorkoutStore';
 
@@ -16,8 +16,8 @@ export function useStartWorkout() {
   const queryClient = useQueryClient();
   const unit = useWeightUnit();
 
-  const begin = (from?: Workout) => {
-    useActiveWorkout.getState().start({ from, unit });
+  const begin = (from?: Workout, routine?: Routine) => {
+    useActiveWorkout.getState().start({ from, routine, unit });
     router.push('/workout');
   };
 
@@ -44,6 +44,7 @@ export function useStartWorkout() {
       router.push('/workout');
     },
     startEmpty: () => confirmReplace(() => begin()),
+    startRoutine: (routine: Routine) => confirmReplace(() => begin(undefined, routine)),
     repeat: (workoutId: string) =>
       confirmReplace(async () => {
         try {

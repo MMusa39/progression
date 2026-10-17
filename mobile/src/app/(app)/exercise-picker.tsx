@@ -1,9 +1,10 @@
 /**
- * Pick one or more exercises to add to the active workout. Search filters the
+ * Pick one or more exercises to add to the active workout (or, with
+ * `?target=routine`, to the routine being edited). Search filters the
  * cached list instantly, and chips narrow it by muscle group. If nothing
  * matches, the user can create a custom exercise right here.
  */
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Icon, Text } from '@/components/ui';
 import { useCreateExercise, useExercises, useWeightUnit } from '@/features/api/queries';
 import type { Equipment, Exercise, MuscleGroup } from '@/features/api/types';
+import { useRoutineDraft } from '@/features/routines/routineDraft';
 import { useActiveWorkout } from '@/features/workout/activeWorkoutStore';
 import { equipmentLabel, muscleGroupLabel } from '@/features/workout/format';
 import { hitTarget, radius, space, typography } from '@/theme/tokens';
@@ -24,6 +26,8 @@ export default function ExercisePickerScreen() {
   const insets = useSafeAreaInsets();
   const exercises = useExercises();
   const unit = useWeightUnit();
+  // Opened from the routine editor: picks go into the routine, not the active workout.
+  const { target } = useLocalSearchParams<{ target?: 'routine' }>();
   const [query, setQuery] = useState('');
   const [muscle, setMuscle] = useState<MuscleGroup | null>(null);
   const [selected, setSelected] = useState<Exercise[]>([]);
@@ -42,7 +46,8 @@ export default function ExercisePickerScreen() {
     );
 
   const addSelected = (list = selected) => {
-    useActiveWorkout.getState().addExercises(list, unit);
+    if (target === 'routine') useRoutineDraft.getState().addExercises(list);
+    else useActiveWorkout.getState().addExercises(list, unit);
     router.back();
   };
 

@@ -8,7 +8,8 @@ import { useTheme } from '@/theme/useTheme';
 import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+/** `dangerText`: a quiet destructive action (e.g. delete account), red text with no fill. */
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerText';
 type Size = 'lg' | 'md' | 'sm';
 
 export type ButtonProps = {
@@ -54,12 +55,14 @@ export function Button({
     secondary: colors.surfaceRaised,
     ghost: 'transparent',
     danger: colors.dangerMuted,
+    dangerText: 'transparent',
   };
   const foreground: Record<Variant, ColorName> = {
     primary: 'onAccent',
     secondary: 'text',
     ghost: 'accentText',
     danger: 'danger',
+    dangerText: 'danger',
   };
 
   return (

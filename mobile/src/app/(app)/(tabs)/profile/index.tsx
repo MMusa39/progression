@@ -208,7 +208,7 @@ export default function ProfileScreen() {
       </Card>
 
       <Button title="Sign out" variant="danger" icon="log-out-outline" onPress={confirmSignOut} style={{ marginTop: space.lg }} />
-      <Button title="Delete account" variant="ghost" onPress={confirmDelete} loading={busy === 'delete'} />
+      <Button title="Delete account" variant="dangerText" size="md" onPress={confirmDelete} loading={busy === 'delete'} />
 
       <Text variant="caption" color="textTertiary" align="center">
         Progression v{Constants.expoConfig?.version}

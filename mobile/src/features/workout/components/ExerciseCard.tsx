@@ -1,7 +1,8 @@
 /**
  * One exercise inside the active workout: header, the set table, and an
  * "Add set" button. Fetches this exercise's last performance to drive the
- * PREVIOUS column and the greyed-out suggestions.
+ * PREVIOUS column, the overload hint ("Today: 190 lb × 6") and the
+ * greyed-out suggestions, which follow the hint so ticking a set logs it.
  */
 import * as Haptics from 'expo-haptics';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
@@ -14,6 +15,7 @@ import { space } from '@/theme/tokens';
 import { useActiveWorkout, type DraftExercise, type DraftSet } from '../activeWorkoutStore';
 import { useRestTimer } from '../restTimer';
 import { formatSet, formatWeight, muscleGroupLabel, unitLabel } from '../format';
+import { formatHint, overloadHint } from '../overload';
 import { SetRow, SetTableHeader, type Suggestion } from './SetRow';
 
 type ExerciseCardProps = {
@@ -26,9 +28,12 @@ type ExerciseCardProps = {
 
 export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCardProps) {
   const lastPerformance = useLastPerformance(item.exercise.id, workoutId).data ?? null;
+  const editing = useActiveWorkout((s) => Boolean(s.active?.editing));
   const { updateSet, toggleComplete, removeSet, addSet, removeExercise, moveExercise } = useActiveWorkout.getState();
 
   const previousSets = lastPerformance?.sets ?? [];
+  // No hints when fixing up a past workout: that's about recording, not progressing.
+  const hint = !editing && previousSets.length > 0 ? overloadHint(previousSets, item.exercise.equipment, item.target) : null;
   const tableUnit = item.sets[0]?.weightUnit ?? unit;
 
   const openMenu = () =>
@@ -40,11 +45,16 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
     ]);
 
   /**
-   * Greyed-out suggestion for set `i`: same set last session if there was one,
-   * otherwise whatever the set above has (typed or suggested).
+   * Greyed-out suggestion for set `i`: the overload hint for working sets,
+   * otherwise the same set last session if there was one, otherwise whatever
+   * the set above has (typed or suggested), otherwise the routine's rep target.
    */
   const suggestions: (Suggestion | null)[] = [];
   item.sets.forEach((set, i) => {
+    if (hint && set.setType === 'WORKING') {
+      suggestions.push({ weight: formatWeight(hint.weight), reps: String(hint.reps) });
+      return;
+    }
     const previous = previousSets[i];
     if (previous) {
       suggestions.push({ weight: formatWeight(previous.weight), reps: String(previous.reps) });
@@ -56,7 +66,7 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
       suggestions.push({ weight: above.weight || aboveSuggestion?.weight || '', reps: above.reps || aboveSuggestion?.reps || '' });
       return;
     }
-    suggestions.push(null);
+    suggestions.push(item.target ? { weight: '', reps: String(item.target.repMin) } : null);
   });
 
   return (
@@ -68,6 +78,8 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
           </Text>
           <Text variant="caption" color="textTertiary">
             {muscleGroupLabel[item.exercise.muscleGroup]}
+            {item.target &&
+              ` · ${item.target.sets} × ${item.target.repMin === item.target.repMax ? item.target.repMin : `${item.target.repMin}–${item.target.repMax}`} reps`}
           </Text>
         </View>
         <Pressable onPress={openMenu} hitSlop={12} accessibilityRole="button" accessibilityLabel={`${item.exercise.name} options`}>
@@ -75,6 +87,20 @@ export function ExerciseCard({ workoutId, item, index, count, unit }: ExerciseCa
         </Pressable>
       </View>
 
+      {hint && (
+        <View style={styles.hint} accessible accessibilityLabel={`Suggestion for today: ${formatHint(hint)}. ${hint.reason}.`}>
+          <Icon name={hint.kind === 'add-weight' ? 'trending-up' : 'add-circle-outline'} size={16} color="accentText" />
+          <Text variant="footnote" style={{ flex: 1 }}>
+            <Text variant="footnote" weight="700" color="accentText">
+              Today: {formatHint(hint)}
+            </Text>
+            <Text variant="footnote" color="textSecondary">
+              {'  '}
+              {hint.reason}
+            </Text>
+          </Text>
+        </View>
+      )}
       <SetTableHeader unitLabel={unitLabel(tableUnit)} />
       {item.sets.map((set, i) => {
         const previous = previousSets[i];
@@ -117,4 +143,5 @@ function setLabel(sets: DraftSet[], index: number): string {
 const styles = StyleSheet.create({
   card: { gap: space.sm, paddingHorizontal: space.md },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: space.xs + 2 },
 });
