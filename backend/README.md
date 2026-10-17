@@ -40,6 +40,7 @@ token, and try every endpoint from the browser.
 | `./gradlew test` | Run unit and integration tests (Testcontainers starts a throwaway PostgreSQL) |
 | `./gradlew build` | Compile, test, and package `build/libs/progression-api-*.jar` |
 | `docker compose down -v` | Stop the local database and delete its data |
+| `python3 scripts/seed_dev_data.py` | Seed realistic workout history for the dev account (API must be running) |
 
 ## Code structure
 
@@ -55,13 +56,16 @@ src/main/java/com/progression/
 │   └── web/                          OpenAPI config, PageResponse
 ├── user/                             /me, just-in-time user provisioning, CurrentUser injection
 ├── exercise/                         exercise catalog + custom exercises
-└── workout/                          workout aggregate, idempotent upsert, history, last performance
+├── workout/                          workout aggregate, idempotent upsert, history, last performance
+└── stats/                            progress analytics: summary, progression, records (JdbcClient + SQL)
 
 src/main/resources/
 ├── application.yml                   shared config
 ├── application-local.yml             local dev (dev JWT secret, debug logging)
 ├── application-prod.yml              AWS (everything from environment variables)
-└── db/migration/                     Flyway migrations (V1 schema, V2 exercise catalog)
+└── db/migration/                     Flyway migrations (V1 schema, V2 exercise catalog, V3 stats view + e1RM function)
+
+scripts/seed_dev_data.py               fills the local API with 16 weeks of realistic training data
 ```
 
 Each feature has the same layers:
@@ -90,6 +94,10 @@ Each feature has the same layers:
 | **Schema migrations** | `db/migration/` | Flyway versions the schema. Hibernate only validates it (`ddl-auto: validate`). |
 | **Consistent errors** | `common/error/ApiExceptionHandler` | Every error is `application/problem+json`, and validation errors list every bad field. |
 | **Virtual threads** | `spring.threads.virtual.enabled` | Each request runs on a lightweight Java virtual thread. |
+| **Analytics in SQL** | `stats/StatsRepository`, `V3__stats_view_and_e1rm.sql` | Reports use `JdbcClient` and plain SQL (grouping, `array_agg`, window functions) over a `working_set` view, not JPA. The e1RM formula is one SQL function, so every number agrees. |
+| **Time-zone-aware bucketing** | `StatsRepository#buckets` | `date_trunc('week', started_at AT TIME ZONE :tz)`: weeks follow the user's calendar. Empty weeks are zero-filled in Java so charts don't compress time. |
+| **Derived, never stored** | `stats/` | PRs, streaks and charts are computed from raw sets on request, so editing an old workout corrects everything. |
+| **Testable time** | `common/TimeConfig` | Services take a `Clock` bean instead of calling `Instant.now()`. |
 
 ## Testing
 
@@ -102,7 +110,10 @@ Each feature has the same layers:
   with `MockMvcTester`. They cover the migrations, SQL, security rules and JSON
   contract together. Each test signs in as a fresh random user, so tests are
   isolated without truncating tables.
-- **Unit tests** (`WorkoutCursorTest`, `WeightUnitTest`, `CognitoTokenValidatorTest`) cover pure logic,
-  including the claim rules that reject Cognito ID tokens and tokens issued to other app clients.
+- **Unit tests** (`WorkoutCursorTest`, `WeightUnitTest`, `CognitoTokenValidatorTest`, `StatsServiceTest`) cover pure logic:
+  the claim rules that reject Cognito ID tokens and tokens issued to other app clients, plus streak and
+  bucket-filling date logic.
+- **`StatsApiTest`** checks the analytics SQL against real PostgreSQL: Epley e1RM, warm-up exclusion,
+  pound conversion, PRs only against *earlier* workouts, previous-period totals, and time-zone week boundaries.
 
 Test reports: `build/reports/tests/test/index.html`.

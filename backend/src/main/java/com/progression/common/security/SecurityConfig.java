@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -59,6 +60,8 @@ public class SecurityConfig {
 	SecurityFilterChain apiSecurity(HttpSecurity http,
 			AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver) throws Exception {
 		http
+				// Uses a CorsConfigurationSource bean if one exists (local profile only, see LocalCorsConfig).
+				.cors(Customizer.withDefaults())
 				.csrf(csrf -> csrf.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
