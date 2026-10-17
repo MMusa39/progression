@@ -53,6 +53,7 @@ src/main/java/com/progression/
 │   ├── WeightUnit.java               LB/KG + conversion (mirrors the DB's weight_kg column)
 │   ├── error/                        exceptions + ApiExceptionHandler (RFC 9457 problem details)
 │   ├── security/                     SecurityConfig (multi-issuer JWT), SecurityProperties, dev-only JWT signing + /dev/token
+│   ├── ratelimit/                    per-user token-bucket rate limiting (429 + Retry-After)
 │   └── web/                          OpenAPI config, PageResponse
 ├── user/                             /me, just-in-time user provisioning, CurrentUser injection
 ├── exercise/                         exercise catalog + custom exercises
@@ -60,6 +61,8 @@ src/main/java/com/progression/
 ├── stats/                            progress analytics: summary, progression, records (JdbcClient + SQL)
 ├── social/                           friends, invites, privacy checks, leaderboards
 ├── notification/                     device tokens, event listeners, Expo push sender
+├── routine/                          routines: exercises with target sets and rep ranges
+├── account/                          data export (one SQL-built JSON document) and account deletion
 ├── body/                             weigh-ins and the smoothed trend (WeightTrend)
 ├── nutrition/                        goal profile, TargetCalculator (BMR, pace caps, macros), adaptive maintenance
 └── food/                             Open Food Facts client + cache, custom foods, recipes (and sharing), diary, water
@@ -69,7 +72,10 @@ src/main/resources/
 ├── application-local.yml             local dev (dev JWT secret, debug logging)
 ├── application-prod.yml              AWS (everything from environment variables)
 └── db/migration/                     Flyway migrations: V1 schema, V2 exercise catalog, V3 stats view + e1RM, V4 friends,
-                                      V5 push tokens, V6 body weight, V7 nutrition, V8 shared recipes
+                                      V5 push tokens, V6 body weight, V7 nutrition, V8 shared recipes,
+                                      V9 custom macros, V10 routines
+
+Dockerfile                             production image: multi-stage, Alpine JRE, layered jar, non-root
 
 scripts/seed_dev_data.py               fills the local API with 16 weeks of training, 6 weeks of weigh-ins and 4 weeks of food
 ```

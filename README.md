@@ -6,8 +6,9 @@ screen, and shows how each lift is progressing over time. It also tracks body
 weight and food (barcode scanning, recipes, calorie and macro targets), so
 training, nutrition and the scale live in one app.
 
-> Status: early development. See [docs/roadmap.md](docs/roadmap.md) for what is
-> done and what is next.
+> Status: feature-complete for a first release; deployment and App Store
+> submission are next. See [docs/release.md](docs/release.md) and
+> [docs/roadmap.md](docs/roadmap.md).
 
 ## Why this exists
 
@@ -41,6 +42,7 @@ answer those questions for you.
 | Personal records | Automatic detection of new PRs (heaviest weight, best estimated 1RM), celebrated when you finish, listed on the Progress tab, and badged in history. |
 | Streaks | Consecutive weeks trained, counted in your own time zone. |
 | Friends | Add friends by @username or invite link, see each other's PRs and workouts (or share PRs only), and compare on a consistency leaderboard (with a winner) and per-lift strength rankings. |
+| Routines | Save your usual workouts (exercises, sets, rep ranges), start them in one tap, or turn any past workout into a routine. |
 | Repeat & edit | Start a new workout from any past one with one tap, or fix mistakes in a saved workout. |
 | Rest timer | Starts automatically when you tick off a set; adjust ±15s or skip; buzzes when rest is over, with a notification if you've left the app. |
 | Notifications | Friend requests, accepted invites, and friends' new PRs, each switchable in Profile. |
@@ -50,8 +52,9 @@ answer those questions for you.
 | Recipes | Build a recipe from ingredients, log servings in one tap, and share it with friends, who can save their own copy. |
 | Calorie & macro targets | From sex, age, height, weight, goal weight, timeline and activity, with safe-pace limits, and adaptive maintenance that learns from what you log and how your weight responds. Or enter your own macros (e.g. from a coach). Everything lives on one **My Plan** screen. |
 | Nutrition trends | How consistently you hit calories, protein, carbs and fat: "18 of 26 days on target", a bar per day against your target zone, weekly averages, and your logging streak. |
-| Overload hints | Suggests when to add weight based on your recent performance. |
-| Offline-first | Gyms have bad signal; workouts are saved on the phone and synced when possible. |
+| Progressive overload | "Today: 190 lb × 6": hit the top of your rep range on every set and it suggests adding weight, otherwise one more rep. The suggestion pre-fills the set, so following it is one tap. |
+| Works offline | Gyms have bad signal: workouts save on the phone as you log and sync when you're back online. |
+| Your data | Export everything as JSON, or delete your account and all data, from the app. |
 
 ## Tech stack
 
@@ -61,7 +64,7 @@ answer those questions for you.
 | Backend | Java 25, Spring Boot 4, Spring Data JPA, Spring Security |
 | Database | PostgreSQL 18, Flyway migrations |
 | Auth | Amazon Cognito: email, phone, or Google sign-in (JWT access tokens) |
-| Infrastructure | AWS CDK (Java): ECS Fargate, RDS PostgreSQL, Application Load Balancer |
+| Infrastructure | AWS CDK (Java): ECS Fargate (ARM64), RDS PostgreSQL, internal ALB behind CloudFront, Cognito |
 | Quality | JUnit 5, Testcontainers, CDK assertions, Jest, ESLint, GitHub Actions CI |
 
 ## Repository layout
@@ -83,5 +86,6 @@ progression/
 - [Mobile README](mobile/README.md): running the app on your phone, structure, how auth and logging work
 - [Infrastructure README](infra/README.md): deploying Cognito, Google and SMS setup, costs
 - [Development setup](docs/development-setup.md): tools to install and how to run everything locally
+- [Release checklist](docs/release.md): what's done and the steps to ship to the App Store
 - [Roadmap](docs/roadmap.md): delivery phases and progress
 - [Architecture Decision Records](docs/adr/): why key technical choices were made

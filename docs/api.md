@@ -26,6 +26,9 @@ This page is the human-oriented overview; the OpenAPI spec is the exact contract
   like a missing one, so the API never reveals that it exists.
 - **Pagination:** cursor-based (`?cursor=...&limit=20`) for history lists, so
   results stay stable while new workouts are being added.
+- **Rate limits:** 300 requests per minute per user, and 30 per minute for food
+  lookups/searches and data exports. Over the limit: `429 Too Many Requests` with
+  a `Retry-After` header (seconds) and a problem-details body.
 
 ## Development-only
 
@@ -41,6 +44,8 @@ This page is the human-oriented overview; the OpenAPI spec is the exact contract
 | --- | --- | --- |
 | `GET` | `/me` | Current user's profile, created automatically on first call. |
 | `PATCH` | `/me` | Update display name or preferred weight unit. |
+| `GET` | `/me/export` | Everything you've stored, as one JSON document (`format: progression-export-v1`): account, workouts with sets, routines, custom exercises and foods, recipes, food diary, weigh-ins, plan, water, friends. Sent as a download (`Content-Disposition`). |
+| `DELETE` | `/me` | Permanently delete your account and all of its data (`204`). Friends' saved copies of your shared recipes are theirs and remain. |
 
 ### Exercises
 
@@ -223,10 +228,13 @@ Food Facts (shared) or a custom food (private to its creator).
 | `GET` | `/recipes/shared/{id}` | One shared recipe. `404` unless it's shared and the owner is your friend. |
 | `POST` | `/recipes/shared/{id}/copy` | `{ "id": "<new uuid>" }`: save your own copy (the owner's custom foods are copied too). Saving again returns the existing copy. |
 
-### Templates
+### Routines
+
+Reusable workout plans: an ordered list of exercises with target sets and a rep range.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/templates` | List the user's templates. |
-| `PUT` | `/templates/{id}` | Create or replace a template. |
-| `DELETE` | `/templates/{id}` | Delete a template. |
+| `GET` | `/routines` | Your routines, each with `exercises: [{ exerciseId, exerciseName, muscleGroup, equipment, sets, repMin, repMax }]`. |
+| `GET` | `/routines/{id}` | One routine (`404` if it isn't yours). |
+| `PUT` | `/routines/{id}` | Create or replace (client-generated id). `{ name, notes?, exercises: [{ exerciseId, sets (1–20), repMin, repMax }] }`; exercises must be catalog or your own. |
+| `DELETE` | `/routines/{id}` | Delete a routine. Workouts logged from it are unaffected. |

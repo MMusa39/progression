@@ -95,11 +95,23 @@ PRs) map cleanly onto SQL window functions. The schema is versioned with
 
 ### Infrastructure (`infra/`)
 
-An AWS CDK application written in Java defines every cloud resource as code:
-VPC, RDS instance, ECS Fargate service behind an Application Load Balancer,
-Cognito User Pool, Secrets Manager entries, and CloudWatch log groups. Nothing
-is created by hand in the AWS console, so the environment can be rebuilt or
-torn down with one command. See [ADR 0004](adr/0004-local-first-aws-later.md).
+An AWS CDK application written in Java defines every cloud resource as code,
+in three stacks:
+
+```
+phone ──HTTPS──▶ CloudFront ──(VPC origin)──▶ internal ALB ──▶ Fargate (ARM64) ──▶ RDS PostgreSQL (isolated subnets)
+                                                                    └──▶ Cognito keys, Open Food Facts, Expo push
+```
+
+- `Progression-Auth`: Cognito user pool, Google provider, mobile app client.
+- `Progression-Data`: VPC (no NAT gateway) and the database: encrypted,
+  private, backed up, deletion-protected.
+- `Progression-Api`: the container (built from `backend/Dockerfile`), an
+  internal load balancer, and CloudFront for HTTPS.
+
+Nothing is created by hand in the AWS console, so the environment can be rebuilt or
+torn down with one command. See [ADR 0004](adr/0004-local-first-aws-later.md)
+and [ADR 0012](adr/0012-deployment-architecture.md).
 
 ## Cross-cutting concerns
 
@@ -143,6 +155,9 @@ network.
 - **Last-write-wins with versions.** Each workout carries an `updatedAt`
   timestamp. The server rejects a write older than what it already holds
   (`409 Conflict`), and the client then refetches.
+- **Network awareness.** TanStack Query's `onlineManager` follows the phone's
+  connection (`expo-network`): offline, queries and mutations pause instead of
+  failing, and resume on reconnect. A small banner says the app is offline.
 
 ### Friends and privacy
 
@@ -200,14 +215,25 @@ FriendService / WorkoutService ──publish──▶ domain event (RequestSent,
 
 All errors are returned as [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)
 (`application/problem+json`) from a single `@RestControllerAdvice`, so the
-mobile app handles one consistent error shape.
+mobile app handles one consistent error shape. In the app, a root
+`ErrorBoundary` replaces a crashed screen with "Something went wrong" and a
+retry button.
+
+### Rate limiting
+
+A token-bucket filter after authentication limits each user (or IP, before
+sign-in) to 300 requests a minute, and 30 a minute for endpoints that call Open
+Food Facts or build a full export. It answers `429` with `Retry-After`. The
+buckets are per instance; a global limit would use AWS WAF on CloudFront.
 
 ### Observability
 
-- Structured JSON logs (with a per-request correlation id) shipped to CloudWatch.
-- Spring Boot Actuator `/actuator/health` used by the load balancer's health
-  checks.
-- Micrometer metrics for request latency and error rate.
+- Structured JSON logs (Elastic Common Schema, `prod` profile) shipped to
+  CloudWatch by the ECS log driver, queryable by field in Logs Insights.
+- Spring Boot Actuator `/actuator/health/readiness` used by the load balancer's
+  health checks (details hidden).
+- Graceful shutdown: in-flight requests finish (up to 20s) before a task stops,
+  matching the target group's deregistration delay, so deploys don't drop requests.
 
 ### Testing strategy
 

@@ -44,6 +44,11 @@ npx expo start --clear  # env changes need a cache clear
 | `npm run typecheck` | TypeScript, including typed routes |
 | `npm run lint` | ESLint (eslint-config-expo) |
 | `npx expo-doctor` | Checks dependency versions and config |
+| `npx eas-cli@latest build -p ios --profile production` | App Store build (see [docs/release.md](../docs/release.md)) |
+
+Release builds read `EXPO_PUBLIC_*` values from EAS environment variables
+(`eas env:create --environment production ...`). Without `EXPO_PUBLIC_API_URL`
+a release build shows "App not configured" rather than calling a guessed address.
 
 ## Project structure
 
@@ -111,6 +116,24 @@ signed-in halves of the app whenever the session changes.
 - Each exercise fetches its **last performance**, which fills the PREVIOUS
   column and the grey suggestions. Tapping ✓ on an empty set logs the
   suggestion, so repeating last week's numbers takes one tap per set.
+- **Routines** (`features/routines/`) start a workout with planned exercises,
+  sets and a rep range. The editor reuses the exercise picker
+  (`/exercise-picker?target=routine`) through a small draft store.
+- **Overload hints** (`features/workout/overload.ts`, unit-tested) use double
+  progression: when every working set last time reached the top of the rep
+  range (or matched the first set, without a routine), suggest the next weight
+  up for the equipment; otherwise suggest one more rep. The hint replaces the
+  grey suggestions for working sets, so following it costs nothing.
+
+### Your data, privacy and legal
+
+- Profile → **Export my data** downloads `GET /me/export` and opens the share
+  sheet with a JSON file (`expo-file-system` + `expo-sharing`).
+- Profile → **Delete account** (two confirmations): deletes the data on the
+  server, then the Cognito identity (`DeleteUser`), then signs out.
+- The privacy policy and terms are in `features/legal/content.ts` and shown in
+  the app; `docs/legal/*.md` are generated from it
+  (`UPDATE_LEGAL=1 npx jest legal`), and a test fails if they drift.
 
 ### Server state
 

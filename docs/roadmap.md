@@ -44,10 +44,10 @@ merged with tests and documentation.
 
 ## Phase 5: Workflow features
 - [x] Edit past workouts (reuses the logger in edit mode; same idempotent save, original times kept)
-- [ ] Templates / routines ("Repeat workout" covers the common case today)
+- [x] Routines: exercises with target sets and rep ranges, start in one tap, save any workout as a routine (V10)
 - [x] Rest timer: auto-starts on each completed set, ±15s / skip, haptic at the end, default length in Profile
 - [x] Rest-over notification while the app is in the background (local notification)
-- [ ] Progressive-overload suggestions
+- [x] Progressive-overload hints (double progression), pre-filling the set suggestions
 
 ## Phase 5b: Friends
 - [x] Usernames, mutual friend requests, invite links/codes (V4 migration)
@@ -68,9 +68,18 @@ merged with tests and documentation.
 - [x] My Plan screen (targets + details in one place), custom macro targets (V9)
 
 ## Phase 6: Offline-first sync
-- [ ] SQLite store on device, sync queue with retries, conflict handling
+- [x] Active workout persisted on the device; finished workouts queue and retry; idempotent upserts with conflict detection
+- [x] Queries pause offline and resume on reconnect; offline banner
+- [ ] Full offline reads (SQLite cache of history and stats)
 
 ## Phase 7: Cloud deployment
-- [ ] CDK stacks: network, database, service (ECS Fargate + ALB), auth
-- [ ] GitHub Actions: build, test, push image to ECR, deploy
-- [ ] CloudWatch logs, alarms; cost notes and teardown instructions
+- [x] CDK stacks: `Progression-Data` (VPC, RDS) and `Progression-Api` (Fargate ARM64, internal ALB, CloudFront VPC origin), ADR 0012
+- [x] Production container image (multi-stage, non-root), JSON logs, graceful shutdown, rate limiting
+- [x] Cost notes and teardown instructions
+- [ ] Deploy (needs your AWS account; see docs/release.md)
+- [ ] GitHub Actions deploy workflow with OIDC; CloudWatch alarms
+
+## Phase 8: App Store release
+- [x] Account deletion and data export; privacy policy and terms (in app + docs/legal)
+- [x] App icon, splash, bundle id, privacy manifest, EAS build profiles; crash screen; production config guard
+- [ ] Apple Developer account, App Store Connect record, TestFlight, review (see docs/release.md)

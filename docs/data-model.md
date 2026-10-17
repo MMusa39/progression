@@ -109,6 +109,14 @@ in their own columns. That gives the data one source of truth: editing an old
 set automatically corrects every chart and PR. If the queries ever become slow,
 a materialized summary table can be added without changing the API.
 
+### Routines (V10)
+
+- **`routine`**: client-generated id, `user_id`, `name`, `notes`.
+- **`routine_exercise`**: primary key `(routine_id, position)`, `exercise_id`,
+  `sets` (1–20), `rep_min` ≤ `rep_max`. Workouts don't reference routines:
+  starting a routine copies its plan into a new workout on the phone, and the
+  workout stands on its own.
+
 ### Custom macro targets (V9)
 
 - **`nutrition_profile`** gains `custom_protein_g`, `custom_carbs_g`,
