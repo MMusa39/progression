@@ -1,12 +1,14 @@
 /** Profile: who's signed in, preferences, and sign out. */
 import Constants from 'expo-constants';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { useState } from 'react';
 
 import { Button, Card, Icon, SegmentedControl, Text } from '@/components/ui';
 import { env } from '@/config/env';
 import { useMe, useUpdateMe } from '@/features/api/queries';
 import type { WeightUnit } from '@/features/api/types';
 import { useSession } from '@/features/auth/AuthProvider';
+import { UsernameForm } from '@/features/friends/UsernameForm';
 import { authSession } from '@/features/auth/session';
 import { formatRest, REST_OPTIONS, useRestTimer, type RestOption } from '@/features/workout/restTimer';
 import { useWorkoutSync } from '@/features/workout/workoutSync';
@@ -22,6 +24,7 @@ export default function ProfileScreen() {
   const updateMe = useUpdateMe();
   const pendingUploads = useWorkoutSync((s) => s.pending.length);
   const restDefault = useRestTimer((s) => s.defaultSeconds);
+  const [editingUsername, setEditingUsername] = useState(false);
 
   if (session.status !== 'signedIn') return null;
   const { user } = session;
@@ -88,6 +91,44 @@ export default function ProfileScreen() {
         />
       </Card>
 
+      <Text variant="footnote" weight="600" color="textSecondary" style={styles.sectionLabel}>
+        FRIENDS
+      </Text>
+      <Card>
+        <View style={styles.settingRow}>
+          <View style={{ flex: 1 }}>
+            <Text variant="headline">Username</Text>
+            <Text variant="footnote" color="textSecondary">
+              {me.data?.username ? `@${me.data.username}` : 'Not set: friends can\u2019t find you yet'}
+            </Text>
+          </View>
+          <Button
+            title={editingUsername ? 'Cancel' : me.data?.username ? 'Change' : 'Set'}
+            variant="ghost"
+            size="sm"
+            fullWidth={false}
+            onPress={() => setEditingUsername((v) => !v)}
+          />
+        </View>
+        {editingUsername && <UsernameForm current={me.data?.username} onSaved={() => setEditingUsername(false)} />}
+      </Card>
+      <Card>
+        <View style={styles.settingRow}>
+          <View style={{ flex: 1 }}>
+            <Text variant="headline">Share workouts with friends</Text>
+            <Text variant="footnote" color="textSecondary">
+              Off: friends only see your PRs and streak.
+            </Text>
+          </View>
+          <Switch
+            value={me.data?.shareWorkouts ?? true}
+            onValueChange={(shareWorkouts) => updateMe.mutate({ shareWorkouts })}
+            trackColor={{ true: colors.accent }}
+            accessibilityLabel="Share workouts with friends"
+          />
+        </View>
+      </Card>
+
       <Card>
         <Text variant="headline">Rest timer</Text>
         <Text variant="footnote" color="textSecondary">
@@ -117,4 +158,5 @@ const styles = StyleSheet.create({
   avatar: { width: 56, height: 56, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   provider: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: 2 },
   sectionLabel: { marginTop: space.md, marginLeft: space.xs },
+  settingRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
 });

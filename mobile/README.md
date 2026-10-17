@@ -112,6 +112,18 @@ TanStack Query owns everything fetched from the API: caching, background
 refetch, pagination (`useInfiniteQuery` over the cursor-paginated history), and
 invalidation after mutations. Query keys live in one place (`queryKeys`).
 
+### Friends
+
+- A **Friends** tab asks for a @username first, then shows incoming requests,
+  the two leaderboards, and your friends. Adding friends happens by username
+  search, a shared invite link (`Linking.createURL('invite/CODE')`, so it
+  works in Expo Go and in builds), or by typing an invite code.
+- All friend actions go through one mutation (`useFriendAction`) that refreshes
+  everything under the `['social']` query key, because one action can change
+  several screens.
+- A friend's workout uses the same `WorkoutDetail` component as your own
+  history, read-only.
+
 ### Progress charts
 
 - **One time range scopes everything** (`features/progress/range.ts`): presets

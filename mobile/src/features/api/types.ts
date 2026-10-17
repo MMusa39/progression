@@ -16,7 +16,11 @@ export type User = {
   id: string;
   email: string | null;
   displayName: string | null;
+  /** Lowercase handle shown as @username; null until chosen. */
+  username: string | null;
   weightUnit: WeightUnit;
+  /** Whether friends can see individual workouts (PRs are always shared). */
+  shareWorkouts: boolean;
   createdAt: string;
 };
 
@@ -168,4 +172,49 @@ export type RecentRecord = {
   weight: number;
   weightUnit: WeightUnit;
   reps: number;
+};
+
+// ------------------------------------------------------------------ friends
+
+export type UserSummary = { id: string; username: string | null; displayName: string | null };
+
+export type Relationship = 'NONE' | 'REQUEST_SENT' | 'REQUEST_RECEIVED' | 'FRIENDS';
+
+export type UserSearchResult = { user: UserSummary; relationship: Relationship };
+
+export type FriendRequest = { id: string; user: UserSummary; createdAt: string };
+
+export type FriendRequests = { incoming: FriendRequest[]; outgoing: FriendRequest[] };
+
+export type Friend = {
+  user: UserSummary;
+  friendsSince: string;
+  shareWorkouts: boolean;
+  currentStreakWeeks: number;
+  workoutsLast4Weeks: number;
+  lastWorkoutAt: string | null;
+};
+
+export type ConnectResult = { user: UserSummary; relationship: Relationship };
+
+export type ConsistencyEntry = {
+  user: UserSummary;
+  you: boolean;
+  rank: number;
+  winner: boolean;
+  currentStreakWeeks: number;
+  workoutsLast4Weeks: number;
+};
+
+export type LeaderboardExercise = { id: string; name: string; participants: number };
+
+export type StrengthEntry = {
+  user: UserSummary;
+  you: boolean;
+  rank: number;
+  bestE1rmKg: number;
+  weight: number;
+  weightUnit: WeightUnit;
+  reps: number;
+  achievedAt: string;
 };
