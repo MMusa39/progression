@@ -20,6 +20,9 @@ import java.time.temporal.ChronoUnit;
  *       losing, current weight otherwise), fat 27% of calories (at least 0.6 g/kg),
  *       carbs fill the rest. Fiber 14 g per 1,000 kcal; water 35 ml/kg.</li>
  * </ol>
+ *
+ * <p>Custom macros ({@link #withCustomMacros}) replace step 4, and calories follow
+ * from them; the pace and projected date are then recomputed from those calories.
  */
 public final class TargetCalculator {
 
@@ -46,10 +49,40 @@ public final class TargetCalculator {
 	 * @param rateCapped      the requested timeline was faster than the safe limit
 	 * @param atCalorieFloor  the calorie floor stopped the target going lower
 	 * @param projectedGoalDate when the goal weight is reached at this rate ({@code null} when maintaining)
+	 * @param mode            CALCULATED, or CUSTOM when the user set their own macros
 	 */
 	public record Targets(int calories, int proteinG, int carbsG, int fatG, int fiberG, int waterMl, int bmr,
 			int formulaTdee, int tdee, String tdeeSource, int dailyDeltaKcal, double weeklyRateKg, Goal goal,
-			boolean rateCapped, boolean atCalorieFloor, LocalDate projectedGoalDate) {
+			boolean rateCapped, boolean atCalorieFloor, LocalDate projectedGoalDate, String mode) {
+	}
+
+	/** Macro targets the user chose themselves. */
+	public record CustomMacros(int proteinG, int carbsG, int fatG) {
+
+		public int calories() {
+			return proteinG * 4 + carbsG * 4 + fatG * 9;
+		}
+	}
+
+	/**
+	 * Replaces the calculated macros with the user's own. Calories are 4/4/9 kcal per
+	 * gram, and the expected weekly change and goal date follow from those calories
+	 * versus maintenance. No caps apply: the user chose these numbers, so the app
+	 * reports the consequence instead of overriding it.
+	 */
+	public static Targets withCustomMacros(Targets calculated, CustomMacros custom, Inputs in) {
+		int calories = custom.calories();
+		double delta = calories - calculated.tdee();
+		double weeklyRate = delta * 7 / KCAL_PER_KG;
+		double diffKg = in.goalKg() - in.currentKg();
+		LocalDate projected = null;
+		if (calculated.goal() != Goal.MAINTAIN && Math.abs(weeklyRate) > 0.01 && Math.signum(weeklyRate) == Math.signum(diffKg)) {
+			projected = in.today().plusDays((long) Math.ceil(Math.abs(diffKg) / Math.abs(weeklyRate) * 7));
+		}
+		return new Targets(calories, custom.proteinG(), custom.carbsG(), custom.fatG(),
+				(int) Math.round(14 * calories / 1000.0), calculated.waterMl(), calculated.bmr(), calculated.formulaTdee(),
+				calculated.tdee(), calculated.tdeeSource(), (int) Math.round(delta), Math.round(weeklyRate * 100) / 100.0,
+				calculated.goal(), false, false, projected, "CUSTOM");
 	}
 
 	public static double bmr(Sex sex, double kg, double cm, int age) {
@@ -121,7 +154,7 @@ public final class TargetCalculator {
 				(int) Math.round(14 * calories / 1000),
 				roundTo(35 * in.currentKg(), 250),
 				(int) Math.round(bmr), (int) Math.round(formulaTdee), (int) Math.round(tdee), source,
-				(int) Math.round(delta), Math.round(weeklyRate * 100) / 100.0, goal, capped, atFloor, projected);
+				(int) Math.round(delta), Math.round(weeklyRate * 100) / 100.0, goal, capped, atFloor, projected, "CALCULATED");
 	}
 
 	private static int roundTo(double value, int step) {

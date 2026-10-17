@@ -3,8 +3,10 @@ package com.progression.nutrition;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.progression.body.BodyWeightService;
@@ -12,6 +14,8 @@ import com.progression.body.WeightTrend;
 import com.progression.common.WeightUnit;
 import com.progression.common.error.BadRequestException;
 import com.progression.food.DiaryService;
+import com.progression.food.Nutrients;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
@@ -46,6 +50,7 @@ public class NutritionService {
 	 * Body stats and goal. Weights come with their unit; heights in cm.
 	 *
 	 * @param currentWeight optional: logged as today's weigh-in when given (setup asks for it)
+	 * @param customMacros  optional: your own protein/carbs/fat targets instead of calculated ones
 	 * @param today         the user's local date
 	 */
 	public record ProfileRequest(
@@ -58,12 +63,32 @@ public class NutritionService {
 			@NotNull LocalDate goalDate,
 			@NotNull Boolean adaptive,
 			@DecimalMin("20") @DecimalMax("1400") BigDecimal currentWeight,
+			@Valid CustomMacrosRequest customMacros,
 			@NotNull LocalDate today) {
 	}
 
-	public record ProfileResponse(Sex sex, int birthYear, double heightCm, ActivityLevel activityLevel,
-			double goalWeightKg, LocalDate goalDate, boolean adaptive) {
+	public record CustomMacrosRequest(
+			@NotNull @Min(0) @Max(600) Integer proteinG,
+			@NotNull @Min(0) @Max(1500) Integer carbsG,
+			@NotNull @Min(0) @Max(600) Integer fatG) {
 	}
+
+	/** {@code customMacros} is null when targets are calculated. */
+	public record ProfileResponse(Sex sex, int birthYear, double heightCm, ActivityLevel activityLevel,
+			double goalWeightKg, LocalDate goalDate, boolean adaptive, TargetCalculator.CustomMacros customMacros) {
+	}
+
+	/**
+	 * Daily intake over a range compared with today's targets.
+	 *
+	 * @param goals null until a profile and a weigh-in exist (intake is still returned)
+	 */
+	public record TrendsResponse(LocalDate from, LocalDate to, List<NutritionTrends.Day> days, NutritionTrends.Goals goals,
+			NutritionTrends.Rules rules, NutritionTrends.Summary summary) {
+	}
+
+	/** Longest range the trends endpoint returns, in days. */
+	static final int MAX_TREND_DAYS = 731;
 
 	/** Targets plus what they were based on, so the app can explain them. */
 	public record TargetsResponse(TargetCalculator.Targets targets, double currentWeightKg, double goalWeightKg,
@@ -88,11 +113,19 @@ public class NutritionService {
 		if (goalKg < 30 || goalKg > 300) {
 			throw new BadRequestException("That goal weight looks off. Check the number and unit.");
 		}
+		TargetCalculator.CustomMacros custom = null;
+		if (r.customMacros() != null) {
+			var m = r.customMacros();
+			custom = new TargetCalculator.CustomMacros(m.proteinG(), m.carbsG(), m.fatG());
+			if (custom.calories() < 800 || custom.calories() > 10_000) {
+				throw new BadRequestException("Those macros add up to " + custom.calories() + " kcal. Check the numbers.");
+			}
+		}
 		if (r.currentWeight() != null) {
 			bodyWeights.log(userId, r.today(), r.currentWeight(), r.weightUnit(), r.today());
 		}
 		profiles.upsert(userId, new NutritionProfileRepository.ProfileRow(r.sex(), r.birthYear(), r.heightCm(),
-				r.activityLevel(), Math.round(goalKg * 100) / 100.0, r.goalDate(), r.adaptive()));
+				r.activityLevel(), Math.round(goalKg * 100) / 100.0, r.goalDate(), r.adaptive(), custom));
 		return profile(userId);
 	}
 
@@ -107,13 +140,58 @@ public class NutritionService {
 		if (trend.isEmpty()) {
 			throw new BadRequestException("Log your weight first, so targets can be calculated.");
 		}
+		return computeTargets(userId, today, profile, trend);
+	}
+
+	/**
+	 * Intake per day from {@code from} (default: the first day ever logged) to
+	 * {@code today}, compared against today's targets, with adherence and the
+	 * logging streak. Ranges are capped at two years.
+	 */
+	@Transactional(readOnly = true)
+	public TrendsResponse trends(UUID userId, LocalDate from, LocalDate today) {
+		LocalDate start = from != null ? from : diary.firstLoggedDay(userId).orElse(today);
+		if (start.isAfter(today)) {
+			start = today;
+		}
+		if (ChronoUnit.DAYS.between(start, today) >= MAX_TREND_DAYS) {
+			start = today.minusDays(MAX_TREND_DAYS - 1);
+		}
+		Map<LocalDate, Nutrients> totals = diary.dailyTotals(userId, start, today);
+		List<NutritionTrends.Day> days = new ArrayList<>();
+		for (LocalDate d = start; !d.isAfter(today); d = d.plusDays(1)) {
+			Nutrients n = totals.get(d);
+			days.add(new NutritionTrends.Day(d, n == null ? null : n.rounded()));
+		}
+		NutritionTrends.Goals goals = goalsFor(userId, today).orElse(null);
+		int streak = NutritionTrends.loggingStreak(diary.loggedDays(userId, today.minusDays(MAX_TREND_DAYS)), today);
+		return new TrendsResponse(start, today, days, goals, NutritionTrends.Rules.DEFAULT,
+				NutritionTrends.summarize(days, today, goals, streak));
+	}
+
+	private Optional<NutritionTrends.Goals> goalsFor(UUID userId, LocalDate today) {
+		var profile = profiles.find(userId).orElse(null);
+		List<WeightTrend.Point> trend = profile == null ? List.of() : bodyWeights.trendSeries(userId);
+		if (trend.isEmpty()) {
+			return Optional.empty();
+		}
+		var t = computeTargets(userId, today, profile, trend).targets();
+		return Optional.of(new NutritionTrends.Goals(t.calories(), t.proteinG(), t.carbsG(), t.fatG(), t.fiberG()));
+	}
+
+	private TargetsResponse computeTargets(UUID userId, LocalDate today, NutritionProfileRepository.ProfileRow profile,
+			List<WeightTrend.Point> trend) {
 		double currentKg = trend.getLast().trendKg();
 
 		Observed observed = profile.adaptive() ? observeTdee(userId, today, trend) : Observed.NONE;
 		var inputs = new TargetCalculator.Inputs(profile.sex(), today.getYear() - profile.birthYear(), profile.heightCm(),
 				profile.activity(), currentKg, profile.goalWeightKg(), profile.goalDate(), today, observed.tdee(),
 				observed.weight());
-		return new TargetsResponse(TargetCalculator.compute(inputs), Math.round(currentKg * 100) / 100.0,
+		TargetCalculator.Targets targets = TargetCalculator.compute(inputs);
+		if (profile.customMacros() != null) {
+			targets = TargetCalculator.withCustomMacros(targets, profile.customMacros(), inputs);
+		}
+		return new TargetsResponse(targets, Math.round(currentKg * 100) / 100.0,
 				profile.goalWeightKg(), profile.goalDate(), observed.loggedDays());
 	}
 
@@ -154,7 +232,8 @@ public class NutritionService {
 	}
 
 	private static ProfileResponse toResponse(NutritionProfileRepository.ProfileRow p) {
-		return new ProfileResponse(p.sex(), p.birthYear(), p.heightCm(), p.activity(), p.goalWeightKg(), p.goalDate(), p.adaptive());
+		return new ProfileResponse(p.sex(), p.birthYear(), p.heightCm(), p.activity(), p.goalWeightKg(), p.goalDate(), p.adaptive(),
+				p.customMacros());
 	}
 
 	private static double toKg(BigDecimal weight, WeightUnit unit) {

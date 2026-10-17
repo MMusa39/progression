@@ -130,6 +130,42 @@ class DiaryRepository {
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 	}
 
+	/** Total nutrition per day in [from, to], for days with anything logged. */
+	Map<LocalDate, Nutrients> dailyTotals(UUID userId, LocalDate from, LocalDate to) {
+		return jdbc.sql("""
+				SELECT logged_on, sum(kcal)::float8 AS kcal, sum(protein_g)::float8 AS protein, sum(carbs_g)::float8 AS carbs,
+				       sum(fat_g)::float8 AS fat, sum(fiber_g)::float8 AS fiber
+				FROM food_log_entry
+				WHERE user_id = :userId AND logged_on BETWEEN :from AND :to
+				GROUP BY logged_on
+				""")
+				.param("userId", userId)
+				.param("from", from)
+				.param("to", to)
+				.query((rs, n) -> Map.entry(rs.getObject("logged_on", LocalDate.class), new Nutrients(rs.getDouble("kcal"),
+						rs.getDouble("protein"), rs.getDouble("carbs"), rs.getDouble("fat"), rs.getDouble("fiber"))))
+				.list()
+				.stream()
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+	}
+
+	/** Days with anything logged, newest first, back to {@code since}. */
+	List<LocalDate> loggedDays(UUID userId, LocalDate since) {
+		return jdbc.sql("SELECT DISTINCT logged_on FROM food_log_entry WHERE user_id = :userId AND logged_on >= :since ORDER BY logged_on DESC")
+				.param("userId", userId)
+				.param("since", since)
+				.query(LocalDate.class)
+				.list();
+	}
+
+	/** The first day anything was logged, if ever. */
+	java.util.Optional<LocalDate> firstLoggedDay(UUID userId) {
+		return jdbc.sql("SELECT min(logged_on) FROM food_log_entry WHERE user_id = :userId")
+				.param("userId", userId)
+				.query(LocalDate.class)
+				.optional();
+	}
+
 	int water(UUID userId, LocalDate date) {
 		return jdbc.sql("SELECT ml FROM water_intake WHERE user_id = :userId AND logged_on = :date")
 				.param("userId", userId).param("date", date).query(Integer.class).optional().orElse(0);

@@ -189,6 +189,18 @@ public class DiaryService {
 		return diary.dailyCalories(userId, from, to);
 	}
 
+	public Map<LocalDate, Nutrients> dailyTotals(UUID userId, LocalDate from, LocalDate to) {
+		return diary.dailyTotals(userId, from, to);
+	}
+
+	public List<LocalDate> loggedDays(UUID userId, LocalDate since) {
+		return diary.loggedDays(userId, since);
+	}
+
+	public java.util.Optional<LocalDate> firstLoggedDay(UUID userId) {
+		return diary.firstLoggedDay(userId);
+	}
+
 	public record WaterRequest(@NotNull @Min(0) @Max(20000) Integer ml) {
 	}
 

@@ -46,4 +46,12 @@ public class NutritionController {
 		var targets = service.targets(me.id(), today);
 		return targets == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(targets);
 	}
+
+	@GetMapping("/trends")
+	@Operation(summary = "Daily intake vs. targets over a range, with adherence and logging streak")
+	public NutritionService.TrendsResponse trends(CurrentUser me,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate today) {
+		return service.trends(me.id(), from, today);
+	}
 }

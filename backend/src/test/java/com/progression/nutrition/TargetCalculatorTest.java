@@ -95,4 +95,28 @@ class TargetCalculatorTest {
 		assertThat(t.fiberG()).isGreaterThan(25);
 		assertThat(t.waterMl()).isEqualTo(3500); // 35 ml × 100 kg
 	}
+
+	@Test
+	void customMacrosSetCaloriesAndTheResultingPace() {
+		var in = inputs(Sex.MALE, 80, 76, 16, null, 0);
+		var calculated = TargetCalculator.compute(in);
+		var t = TargetCalculator.withCustomMacros(calculated, new TargetCalculator.CustomMacros(180, 200, 60), in);
+
+		assertThat(t.mode()).isEqualTo("CUSTOM");
+		assertThat(t.calories()).isEqualTo(180 * 4 + 200 * 4 + 60 * 9); // 2,060
+		assertThat(t.proteinG()).isEqualTo(180);
+		assertThat(t.tdee()).isEqualTo(calculated.tdee());
+		assertThat(t.dailyDeltaKcal()).isEqualTo(2060 - calculated.tdee());
+		assertThat(t.weeklyRateKg()).isNegative();
+		assertThat(t.projectedGoalDate()).isAfter(TODAY);
+		assertThat(t.rateCapped()).isFalse();
+	}
+
+	@Test
+	void customMacrosThatMoveAwayFromTheGoalHaveNoProjectedDate() {
+		var in = inputs(Sex.MALE, 80, 76, 16, null, 0);
+		var t = TargetCalculator.withCustomMacros(TargetCalculator.compute(in), new TargetCalculator.CustomMacros(200, 450, 100), in);
+		assertThat(t.weeklyRateKg()).isPositive(); // 3,500 kcal is a surplus while trying to lose
+		assertThat(t.projectedGoalDate()).isNull();
+	}
 }
