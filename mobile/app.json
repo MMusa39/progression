@@ -47,7 +47,8 @@
         {
           "cameraPermission": "Progression uses the camera to scan food barcodes."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

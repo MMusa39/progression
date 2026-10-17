@@ -134,3 +134,8 @@ export async function confirmForgotPassword(username: string, code: string, newP
 export async function revokeToken(refreshToken: string): Promise<void> {
   await call('RevokeToken', { Token: refreshToken });
 }
+
+/** Deletes the signed-in user from the user pool (works for password and Google users). */
+export async function deleteUser(accessToken: string): Promise<void> {
+  await call('DeleteUser', { AccessToken: accessToken });
+}

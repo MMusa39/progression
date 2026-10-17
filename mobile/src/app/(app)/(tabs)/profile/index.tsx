@@ -1,10 +1,12 @@
-/** Profile: who's signed in, preferences, and sign out. */
+/** Profile: who's signed in, preferences, your data (export, delete), legal, and sign out. */
 import Constants from 'expo-constants';
-import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { router } from 'expo-router';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useState } from 'react';
 
 import { Button, Card, Icon, SegmentedControl, Text } from '@/components/ui';
 import { env } from '@/config/env';
+import { deleteAccount, exportData } from '@/features/account/account';
 import { useMe, useUpdateMe } from '@/features/api/queries';
 import type { WeightUnit } from '@/features/api/types';
 import { useSession } from '@/features/auth/AuthProvider';
@@ -27,6 +29,7 @@ export default function ProfileScreen() {
   const pendingUploads = useWorkoutSync((s) => s.pending.length);
   const restDefault = useRestTimer((s) => s.defaultSeconds);
   const [editingUsername, setEditingUsername] = useState(false);
+  const [busy, setBusy] = useState<'export' | 'delete' | null>(null);
 
   if (session.status !== 'signedIn') return null;
   const { user } = session;
@@ -53,6 +56,48 @@ export default function ProfileScreen() {
             await unregisterPush(); // stop this phone getting the account's notifications
             await authSession.signOut();
           },
+        },
+      ],
+    );
+
+  const runExport = async () => {
+    setBusy('export');
+    try {
+      if (!(await exportData())) Alert.alert('Export works on your phone', 'Open Progression on your iPhone to save or share your data.');
+    } catch (error) {
+      Alert.alert("Couldn't export", error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Two steps, because this can't be undone.
+  const confirmDelete = () =>
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your workouts, records, weigh-ins, food diary, recipes and friends. Export your data first if you want a copy.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('Are you sure?', 'Your account and all of its data will be gone for good.', [
+              { text: 'Keep my account', style: 'cancel' },
+              {
+                text: 'Delete forever',
+                style: 'destructive',
+                onPress: async () => {
+                  setBusy('delete');
+                  try {
+                    await deleteAccount();
+                  } catch (error) {
+                    setBusy(null);
+                    Alert.alert("Couldn't delete your account", error instanceof Error ? error.message : 'Please try again.');
+                  }
+                },
+              },
+            ]),
         },
       ],
     );
@@ -153,13 +198,50 @@ export default function ProfileScreen() {
         />
       </Card>
 
+      <Text variant="footnote" weight="600" color="textSecondary" style={styles.sectionLabel}>
+        YOUR DATA & PRIVACY
+      </Text>
+      <Card style={{ padding: 0, gap: 0 }}>
+        <LinkRow icon="download-outline" label="Export my data" onPress={runExport} busy={busy === 'export'} first />
+        <LinkRow icon="shield-checkmark-outline" label="Privacy policy" onPress={() => router.push('/profile/legal/privacy')} />
+        <LinkRow icon="document-text-outline" label="Terms of use" onPress={() => router.push('/profile/legal/terms')} />
+      </Card>
+
       <Button title="Sign out" variant="danger" icon="log-out-outline" onPress={confirmSignOut} style={{ marginTop: space.lg }} />
+      <Button title="Delete account" variant="ghost" onPress={confirmDelete} loading={busy === 'delete'} />
 
       <Text variant="caption" color="textTertiary" align="center">
         Progression v{Constants.expoConfig?.version}
         {__DEV__ ? ` · API ${env.apiUrl}` : ''}
       </Text>
     </ScrollView>
+  );
+}
+
+function LinkRow({ icon, label, onPress, busy, first }: {
+  icon: 'download-outline' | 'shield-checkmark-outline' | 'document-text-outline';
+  label: string;
+  onPress: () => void;
+  busy?: boolean;
+  first?: boolean;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={busy}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.linkRow,
+        !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+        pressed && { backgroundColor: colors.surfaceRaised },
+      ]}>
+      <Icon name={icon} size={20} color="accentText" />
+      <Text variant="body" style={{ flex: 1 }}>
+        {label}
+      </Text>
+      {busy ? <ActivityIndicator /> : <Icon name="chevron-forward" size={16} color="textTertiary" />}
+    </Pressable>
   );
 }
 
@@ -170,4 +252,5 @@ const styles = StyleSheet.create({
   provider: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: 2 },
   sectionLabel: { marginTop: space.md, marginLeft: space.xs },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, minHeight: 50 },
 });
