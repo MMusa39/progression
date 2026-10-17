@@ -1,5 +1,5 @@
 /**
- * Progress tab, in two views sharing one time range:
+ * Progress tab, in three views sharing one time range:
  *
  * Strength: the three questions a lifter actually asks.
  *   1. Am I showing up?        → workouts in the range + weekly streak
@@ -7,6 +7,7 @@
  *   3. Is each lift improving? → every lift trained in the range, with how much it moved
  *
  * Body: weigh-ins and the smoothed weight trend (see BodyOverview).
+ * Nutrition: how consistently you hit calorie and macro targets (see NutritionOverview).
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -16,13 +17,14 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, V
 import { Sparkline } from '@/components/charts';
 import { Button, EmptyState, Icon, SegmentedControl, Text } from '@/components/ui';
 import { BodyOverview } from '@/features/body/BodyOverview';
+import { NutritionOverview } from '@/features/nutrition/NutritionOverview';
 import { useExerciseStats, useRecentRecords, useStatsSummary, useWeightUnit } from '@/features/api/queries';
 import type { ExerciseStats, RecentRecord, StatsSummary, WeightUnit } from '@/features/api/types';
 import { shortDate } from '@/features/progress/dates';
 import { Delta } from '@/features/progress/Delta';
 import { KpiTile } from '@/features/progress/KpiTile';
 import { RangeFilter } from '@/features/progress/RangeFilter';
-import { deviceTimeZone, previousPeriodLabel, rangeLabel, rangeStart, useProgressRange } from '@/features/progress/range';
+import { deviceTimeZone, previousPeriodLabel, rangeLabel, rangeStart, useProgressRange, type ProgressView } from '@/features/progress/range';
 import { formatWeight, kgTo, unitLabel } from '@/features/workout/format';
 import { useStartWorkout } from '@/features/workout/useStartWorkout';
 import { radius, space } from '@/theme/tokens';
@@ -41,6 +43,7 @@ export default function ProgressScreen() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['stats'] }),
       queryClient.invalidateQueries({ queryKey: ['body'] }),
+      queryClient.invalidateQueries({ queryKey: ['nutrition'] }),
     ]);
     setRefreshing(false);
   };
@@ -50,17 +53,18 @@ export default function ProgressScreen() {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
-      <SegmentedControl<'strength' | 'body'>
+      <SegmentedControl<ProgressView>
         accessibilityLabel="Progress view"
         options={[
           { value: 'strength', label: 'Strength' },
-          { value: 'body', label: 'Body weight' },
+          { value: 'body', label: 'Weight' },
+          { value: 'nutrition', label: 'Nutrition' },
         ]}
         value={view}
         onChange={setView}
       />
       <RangeFilter />
-      {view === 'strength' ? <StrengthOverview /> : <BodyOverview />}
+      {view === 'strength' ? <StrengthOverview /> : view === 'body' ? <BodyOverview /> : <NutritionOverview />}
     </ScrollView>
   );
 }

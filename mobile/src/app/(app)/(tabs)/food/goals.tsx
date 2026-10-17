@@ -1,51 +1,42 @@
 /**
- * Goal setup and target breakdown. A short form (sex, birth year, height,
- * current and goal weight, timeline, activity) drives calorie and macro
- * targets; below it, the targets are explained in plain language, including
- * when the safety limits changed the plan.
+ * Set up or edit the plan: a short form (sex, birth year, height, current and
+ * goal weight, timeline, activity) that drives calorie and macro targets, or
+ * your own macros instead. The results are shown on My Plan.
  */
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { Button, Card, Icon, SegmentedControl, Text } from '@/components/ui';
 import { useWeightUnit } from '@/features/api/queries';
-import type { ActivityLevel, NutritionProfile, Sex, TargetsResponse, WeightUnit } from '@/features/api/types';
+import type { ActivityLevel, CustomMacros, NutritionProfile, Sex, WeightUnit } from '@/features/api/types';
 import { useBodyWeights } from '@/features/body/queries';
+import { ACTIVITY, CM_PER_IN } from '@/features/nutrition/activity';
 import { useNutritionProfile, useSaveProfile, useTargets } from '@/features/nutrition/queries';
 import { parseLocalDate, shortDate } from '@/features/progress/dates';
-import { formatWeight, kgTo, unitLabel } from '@/features/workout/format';
+import { kgTo, unitLabel } from '@/features/workout/format';
 import { addDays, localDate } from '@/lib/dates';
 import { hitTarget, radius, space, typography } from '@/theme/tokens';
 import { useTheme } from '@/theme/useTheme';
 
-const ACTIVITY: { value: ActivityLevel; label: string; detail: string }[] = [
-  { value: 'SEDENTARY', label: 'Mostly sitting', detail: 'Desk job, little exercise' },
-  { value: 'LIGHT', label: 'Lightly active', detail: 'Exercise 1–3 days a week' },
-  { value: 'MODERATE', label: 'Moderately active', detail: 'Exercise 3–5 days a week' },
-  { value: 'ACTIVE', label: 'Very active', detail: 'Hard exercise 6–7 days a week' },
-  { value: 'VERY_ACTIVE', label: 'Extremely active', detail: 'Physical job plus training' },
-];
-
-const CM_PER_IN = 2.54;
-
-export default function GoalsScreen() {
+export default function EditPlanScreen() {
   const profile = useNutritionProfile();
   const targets = useTargets();
   const weights = useBodyWeights(null);
   const unit = useWeightUnit();
 
-  if (profile.isPending || weights.isPending) return <ActivityIndicator style={{ flex: 1 }} />;
+  if (profile.isPending || weights.isPending || targets.isPending) return <ActivityIndicator style={{ flex: 1 }} />;
+  const t = targets.data?.targets;
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: 'Goal' }} />
-      {targets.data && <TargetsCard data={targets.data} unit={unit} />}
+      <Stack.Screen options={{ title: profile.data ? 'Edit Plan' : 'Set Up Plan' }} />
       <GoalForm
         // Re-mount with fresh defaults once data arrives.
         key={profile.data ? 'edit' : 'new'}
         profile={profile.data ?? null}
         currentKg={weights.data?.currentTrendKg ?? null}
+        suggestedMacros={t ? { proteinG: t.proteinG, carbsG: t.carbsG, fatG: t.fatG } : null}
         unit={unit}
       />
       <Text variant="caption" color="textTertiary" align="center">
@@ -56,7 +47,18 @@ export default function GoalsScreen() {
   );
 }
 
-function GoalForm({ profile, currentKg, unit }: { profile: NutritionProfile | null; currentKg: number | null; unit: WeightUnit }) {
+function GoalForm({
+  profile,
+  currentKg,
+  suggestedMacros,
+  unit,
+}: {
+  profile: NutritionProfile | null;
+  currentKg: number | null;
+  /** Today's calculated macros: the starting point when switching to your own. */
+  suggestedMacros: CustomMacros | null;
+  unit: WeightUnit;
+}) {
   const { colors } = useTheme();
   const save = useSaveProfile();
   const today = localDate();
@@ -71,22 +73,31 @@ function GoalForm({ profile, currentKg, unit }: { profile: NutritionProfile | nu
   const [feet, setFeet] = useState(profile && imperial ? String(Math.floor(heightIn / 12)) : '');
   const [inches, setInches] = useState(profile && imperial ? String(Math.round(heightIn % 12)) : '');
   const [cm, setCm] = useState(profile && !imperial ? String(Math.round(profile.heightCm)) : '');
-  const [current, setCurrent] = useState(currentKg ? toDisplay(currentKg) : '');
+  const initialCurrent = currentKg ? toDisplay(currentKg) : '';
+  const [current, setCurrent] = useState(initialCurrent);
   const [goal, setGoal] = useState(profile ? toDisplay(profile.goalWeightKg) : '');
   const [weeks, setWeeks] = useState(initialWeeks);
   const [activity, setActivity] = useState<ActivityLevel>(profile?.activityLevel ?? 'MODERATE');
   const [adaptive, setAdaptive] = useState(profile?.adaptive ?? true);
+  const initialMacros = profile?.customMacros ?? suggestedMacros;
+  const [mode, setMode] = useState<'calculated' | 'custom'>(profile?.customMacros ? 'custom' : 'calculated');
+  const [protein, setProtein] = useState(initialMacros ? String(initialMacros.proteinG) : '');
+  const [carbs, setCarbs] = useState(initialMacros ? String(initialMacros.carbsG) : '');
+  const [fat, setFat] = useState(initialMacros ? String(initialMacros.fatG) : '');
+  const customKcal = Number(protein) * 4 + Number(carbs) * 4 + Number(fat) * 9;
 
   const heightCm = imperial ? (Number(feet) * 12 + Number(inches || 0)) * CM_PER_IN : Number(cm);
   const year = Number(birthYear);
   const valid =
     year > 1900 && year <= new Date().getFullYear() - 13 &&
     heightCm >= 100 && heightCm <= 250 &&
-    Number(current) > 0 && Number(goal) > 0;
+    Number(current) > 0 && Number(goal) > 0 &&
+    (mode === 'calculated' || (protein !== '' && carbs !== '' && fat !== '' && customKcal >= 800));
   const goalDate = useMemo(() => addDays(today, weeks * 7), [today, weeks]);
 
   const submit = () =>
-    save.mutate({
+    save.mutate(
+      {
       sex,
       birthYear: year,
       heightCm: Math.round(heightCm * 10) / 10,
@@ -95,12 +106,17 @@ function GoalForm({ profile, currentKg, unit }: { profile: NutritionProfile | nu
       weightUnit: unit,
       goalDate,
       adaptive,
-      currentWeight: Number(current),
-    });
+      // Only log a weigh-in when it's new information: on edit the field starts at
+      // your trend weight, and re-saving that would overwrite today's real reading.
+      currentWeight: !profile || current !== initialCurrent ? Number(current) : undefined,
+      customMacros: mode === 'custom' ? { proteinG: Number(protein), carbsG: Number(carbs), fatG: Number(fat) } : null,
+      },
+      { onSuccess: () => router.back() },
+    );
 
   return (
     <View style={{ gap: space.lg }}>
-      <Text variant="title2">{profile ? 'Your details' : 'Set your goal'}</Text>
+      <Text variant="title2">About you</Text>
 
       <Field label="Sex (for the energy formula)">
         <SegmentedControl<Sex>
@@ -161,80 +177,54 @@ function GoalForm({ profile, currentKg, unit }: { profile: NutritionProfile | nu
         <ActivityPicker value={activity} onChange={setActivity} />
       </Field>
 
-      <Card style={styles.switchRow}>
-        <View style={{ flex: 1 }}>
-          <Text variant="headline">Adaptive targets</Text>
+      <Text variant="title2" style={{ marginTop: space.md }}>
+        Targets
+      </Text>
+      <SegmentedControl<'calculated' | 'custom'>
+        accessibilityLabel="How targets are set"
+        options={[
+          { value: 'calculated', label: 'Calculate for me' },
+          { value: 'custom', label: 'My own macros' },
+        ]}
+        value={mode}
+        onChange={setMode}
+      />
+      {mode === 'custom' ? (
+        <View style={{ gap: space.sm }}>
+          <View style={styles.row}>
+            <Field label="Protein" style={{ flex: 1 }}>
+              <NumberInput value={protein} onChange={setProtein} placeholder="150" suffix="g" maxLength={3} />
+            </Field>
+            <Field label="Carbs" style={{ flex: 1 }}>
+              <NumberInput value={carbs} onChange={setCarbs} placeholder="200" suffix="g" maxLength={4} />
+            </Field>
+            <Field label="Fat" style={{ flex: 1 }}>
+              <NumberInput value={fat} onChange={setFat} placeholder="60" suffix="g" maxLength={3} />
+            </Field>
+          </View>
           <Text variant="footnote" color="textSecondary">
-            After two weeks of logging, compare what you eat with how your weight actually moves, and fine-tune your target.
+            = {customKcal.toLocaleString()} kcal a day (4 per gram of protein and carbs, 9 per gram of fat). Your goal
+            weight and date are still used to show your expected pace.
           </Text>
         </View>
-        <Switch value={adaptive} onValueChange={setAdaptive} trackColor={{ true: colors.accent }} accessibilityLabel="Adaptive targets" />
-      </Card>
+      ) : (
+        <Card style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <Text variant="headline">Adaptive targets</Text>
+            <Text variant="footnote" color="textSecondary">
+              After two weeks of logging, compare what you eat with how your weight actually moves, and fine-tune your target.
+            </Text>
+          </View>
+          <Switch value={adaptive} onValueChange={setAdaptive} trackColor={{ true: colors.accent }} accessibilityLabel="Adaptive targets" />
+        </Card>
+      )}
 
       {save.error && (
         <Text variant="footnote" color="danger">
           {save.error.message}
         </Text>
       )}
-      <Button title={profile ? 'Update goal' : 'Calculate my targets'} onPress={submit} disabled={!valid} loading={save.isPending} />
-    </View>
-  );
-}
-
-/** What the targets are and why, in plain language. */
-function TargetsCard({ data, unit }: { data: TargetsResponse; unit: WeightUnit }) {
-  const { colors } = useTheme();
-  const t = data.targets;
-  const fmt = (kg: number) => `${formatWeight(Math.round(kgTo(unit, kg) * 10) / 10)} ${unitLabel(unit)}`;
-  const rate = `${formatWeight(Math.round(Math.abs(kgTo(unit, t.weeklyRateKg)) * 10) / 10)} ${unitLabel(unit)}/week`;
-  const plan =
-    t.goal === 'MAINTAIN'
-      ? 'You’re at your goal, so this keeps your weight steady.'
-      : `${t.goal === 'LOSE' ? 'Losing' : 'Gaining'} about ${rate}${t.projectedGoalDate ? `, reaching ${fmt(data.goalWeightKg)} around ${shortDate(t.projectedGoalDate)}` : ''}.`;
-
-  return (
-    <Card style={{ gap: space.md, borderColor: colors.accent, borderWidth: 1.5 }}>
-      <Text variant="caption" color="textSecondary">
-        DAILY TARGET
-      </Text>
-      <Text style={styles.kcal}>{t.calories.toLocaleString()} kcal</Text>
-      <View style={styles.row}>
-        <Stat label="Protein" value={`${t.proteinG} g`} />
-        <Stat label="Carbs" value={`${t.carbsG} g`} />
-        <Stat label="Fat" value={`${t.fatG} g`} />
-      </View>
-      <Text variant="subhead">{plan}</Text>
-      <Text variant="footnote" color="textSecondary">
-        Maintenance ≈ {t.tdee.toLocaleString()} kcal/day
-        {t.tdeeSource === 'ADAPTIVE'
-          ? `, adjusted from your last ${data.adaptiveLoggedDays} logged days and weight trend (formula estimate: ${t.formulaTdee.toLocaleString()}).`
-          : ` (estimated from your body and activity${data.adaptiveLoggedDays > 0 ? `; adaptive kicks in after 14 logged days, you have ${data.adaptiveLoggedDays}` : ''}).`}{' '}
-        {t.dailyDeltaKcal !== 0 && `Target is ${Math.abs(t.dailyDeltaKcal)} kcal ${t.dailyDeltaKcal < 0 ? 'below' : 'above'} that.`}
-      </Text>
-      {t.rateCapped && t.goal !== 'MAINTAIN' && (
-        <View style={[styles.notice, { backgroundColor: colors.surfaceRaised }]}>
-          <Icon name="shield-checkmark-outline" size={18} color="accentText" />
-          <Text variant="footnote" color="textSecondary" style={{ flex: 1 }}>
-            {t.atCalorieFloor
-              ? `Your timeline would need fewer calories than is safe without supervision, so the target stays at ${t.calories.toLocaleString()} kcal.`
-              : `Your timeline is faster than a safe pace, so the plan uses ${rate} instead${t.projectedGoalDate ? ` (about ${shortDate(t.projectedGoalDate)})` : ''}.`}
-          </Text>
-        </View>
-      )}
-      <Text variant="caption" color="textTertiary">
-        Fiber {t.fiberG} g · Water {(t.waterMl / 1000).toFixed(1)} L
-      </Text>
-    </Card>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={{ flex: 1 }}>
-      <Text variant="caption" color="textSecondary">
-        {label}
-      </Text>
-      <Text variant="headline">{value}</Text>
+      <Button title={profile ? 'Save changes' : 'Create my plan'} onPress={submit} disabled={!valid} loading={save.isPending} />
     </View>
   );
 }
@@ -317,8 +307,6 @@ function daysBetween(from: string, to: string): number {
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.xl, paddingBottom: space.xxxl },
   row: { flexDirection: 'row', gap: space.sm },
-  kcal: { fontSize: 40, lineHeight: 46, fontWeight: '800' },
-  notice: { flexDirection: 'row', gap: space.sm, padding: space.md, borderRadius: radius.md },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   input: {
     flex: 1,

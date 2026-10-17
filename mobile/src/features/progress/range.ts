@@ -75,10 +75,12 @@ export function previousPeriodLabel(range: ProgressRange): string | null {
   return `vs previous ${length.count} ${unit}`;
 }
 
+export type ProgressView = 'strength' | 'body' | 'nutrition';
+
 type RangeState = ProgressRange & {
   /** Which Progress view is showing; remembered between visits. */
-  view: 'strength' | 'body';
-  setView: (view: 'strength' | 'body') => void;
+  view: ProgressView;
+  setView: (view: ProgressView) => void;
   setPreset: (preset: Exclude<RangePreset, 'CUSTOM'>) => void;
   setCustom: (count: number, unit: RangeUnit) => void;
 };

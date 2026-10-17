@@ -17,7 +17,7 @@ export function DaySummary({ totals, targets }: { totals: Nutrients; targets: Ta
   const left = t ? t.calories - eaten : null;
 
   return (
-    <Card onPress={() => router.push('/food/goals')} accessibilityLabel={`${eaten} calories eaten${t ? ` of ${t.calories}` : ''}. Tap for goal details.`}>
+    <Card onPress={() => router.push('/food/plan')} accessibilityLabel={`${eaten} calories eaten${t ? ` of ${t.calories}` : ''}. Tap for your plan.`}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text variant="caption" color="textSecondary">

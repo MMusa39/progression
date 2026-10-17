@@ -37,6 +37,10 @@ export const palettes = {
      */
     chart: '#84A31A',
     chartWash: 'rgba(132, 163, 26, 0.10)',
+    /** A target zone behind bars: stronger than the wash so it reads as a band. */
+    chartBand: 'rgba(132, 163, 26, 0.18)',
+    /** Bars outside the target: neutral, still >= 3:1 vs `surface` so they stay visible. */
+    chartMuted: '#6E6E79',
     gridline: '#26262D',
   },
   light: {
@@ -60,6 +64,8 @@ export const palettes = {
     /** Validated: OKLCH L inside the light band, 4.3:1 vs white `surface`. */
     chart: '#5A8700',
     chartWash: 'rgba(90, 135, 0, 0.10)',
+    chartBand: 'rgba(90, 135, 0, 0.16)',
+    chartMuted: '#8C8C97',
     gridline: '#ECECF0',
   },
 } as const;

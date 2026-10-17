@@ -246,7 +246,11 @@ export type NutritionProfile = {
   goalWeightKg: number;
   goalDate: string;
   adaptive: boolean;
+  /** The user's own macro targets; null when targets are calculated. */
+  customMacros: CustomMacros | null;
 };
+
+export type CustomMacros = { proteinG: number; carbsG: number; fatG: number };
 
 export type Targets = {
   calories: number;
@@ -265,6 +269,7 @@ export type Targets = {
   rateCapped: boolean;
   atCalorieFloor: boolean;
   projectedGoalDate: string | null;
+  mode: 'CALCULATED' | 'CUSTOM';
 };
 
 export type TargetsResponse = {
@@ -273,6 +278,23 @@ export type TargetsResponse = {
   goalWeightKg: number;
   goalDate: string;
   adaptiveLoggedDays: number;
+};
+
+/** Daily intake over a range vs. today's targets (GET /nutrition/trends). */
+export type NutritionTrends = {
+  from: string;
+  to: string;
+  /** Every day in the range; `intake` is null when nothing was logged. */
+  days: { date: string; intake: Nutrients | null }[];
+  goals: { calories: number; proteinG: number; carbsG: number; fatG: number; fiberG: number } | null;
+  rules: { calorieTolerance: number; proteinMinimum: number; macroTolerance: number };
+  summary: {
+    finishedDays: number;
+    loggedDays: number;
+    loggingStreak: number;
+    average: Nutrients | null;
+    onTarget: { calories: number; protein: number; carbs: number; fat: number } | null;
+  };
 };
 
 // ------------------------------------------------------------------ food

@@ -136,11 +136,27 @@ function MyFoods({ onFood }: { onFood: (food: Food) => void }) {
 }
 
 function RecipeList({ onRecipe }: { onRecipe: (recipe: Recipe) => void }) {
+  const { colors } = useTheme();
   const recipes = useRecipes();
+  if (recipes.isPending) return <ActivityIndicator style={{ marginTop: space.lg }} />;
   return (
-    <Results loading={recipes.isPending} empty={recipes.data?.length === 0} emptyText="Save recipes from the book icon on the Food tab.">
+    <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Pressable
+        onPress={() => router.push({ pathname: '/food/recipe/[id]', params: { id: 'new' } })}
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceRaised }]}>
+        <Icon name="add-circle" size={22} color="accentText" />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="body" weight="600" color="accentText">
+            Create a recipe
+          </Text>
+          <Text variant="footnote" color="textSecondary">
+            Combine foods once, log servings in one tap
+          </Text>
+        </View>
+      </Pressable>
       {recipes.data?.map((recipe) => <RecipeRow key={recipe.id} recipe={recipe} onPress={() => onRecipe(recipe)} />)}
-    </Results>
+    </View>
   );
 }
 

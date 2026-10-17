@@ -166,8 +166,18 @@ iPhone usually a development build:
 
 - **Food tab:** a day at a time (swipe days with the arrows; tap the date for
   today). The summary shows calories eaten vs. target and protein/carbs/fat
-  bars; tap it to edit your goal. Each meal lists its entries (tap to edit,
-  long-press to delete), with **Add food** and **Copy previous day**.
+  bars. Under it, three labeled shortcuts: **Trends**, **Recipes** and **My
+  plan**. Each meal lists its entries (tap to edit, long-press to delete),
+  with **Add food** and **Copy previous day**.
+- **My Plan** (`food/plan.tsx`) shows the daily targets and why, then your
+  details as a settings-style list; **Edit plan** opens the form
+  (`food/goals.tsx`), where you can switch between calculated targets and your
+  own macros.
+- **Trends** (`food/trends.tsx`, also Progress → Nutrition) answers "how
+  consistent am I?": days on target for calories / protein / carbs / fat, a
+  `BarChart` against the target zone (off-target bars turn grey, today is an
+  outline), logging streak, and weekly averages. The shaping logic is in
+  `features/nutrition/trends.ts` and unit-tested.
 - **Add food** searches your foods and cached Open Food Facts products, and
   offers **Scan**, **Quick add** and **New food**, plus Recent / My foods /
   Recipes tabs. Picking something opens the amount screen (servings or grams)

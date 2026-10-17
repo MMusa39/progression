@@ -151,7 +151,7 @@ function GoalCard({ targets, unit, fmt }: {
   const t = targets.targets;
   const toGo = targets.goalWeightKg - targets.currentWeightKg;
   return (
-    <Card onPress={() => router.push('/food/goals')} accessibilityLabel="Weight goal. Tap to edit.">
+    <Card onPress={() => router.push('/food/plan')} accessibilityLabel="Weight goal. Tap to edit.">
       <View style={styles.goalHeader}>
         <Icon name="flag-outline" size={18} color="accentText" />
         <Text variant="headline" style={{ flex: 1 }}>

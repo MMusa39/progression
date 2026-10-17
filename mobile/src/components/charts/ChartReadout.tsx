@@ -13,6 +13,8 @@ type ChartReadoutProps = {
   left: number;
   /** Drawn over the top of the plot (charts without a reserved readout row): gets a backing so it stays legible. */
   overlay?: boolean;
+  /** Prefix for the label at rest (default "Latest · "). */
+  resting?: string;
 };
 
 /**
@@ -21,7 +23,7 @@ type ChartReadoutProps = {
  * in a fixed place rather than following the finger, so the finger never
  * covers it. The value leads in strong text and the label follows in secondary text.
  */
-export function ChartReadout({ value, label, detail, selected, left, overlay = false }: ChartReadoutProps) {
+export function ChartReadout({ value, label, detail, selected, left, overlay = false, resting = 'Latest · ' }: ChartReadoutProps) {
   const { colors } = useTheme();
   return (
     <View
@@ -32,7 +34,7 @@ export function ChartReadout({ value, label, detail, selected, left, overlay = f
         {value}
       </Text>
       <Text variant="caption" color="textSecondary" numberOfLines={1}>
-        {selected ? '' : 'Latest · '}
+        {selected ? '' : resting}
         {label}
         {detail ? ` · ${detail}` : ''}
       </Text>

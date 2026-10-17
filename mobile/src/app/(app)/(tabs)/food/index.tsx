@@ -2,7 +2,7 @@
  * Food diary for one day: calories and macros vs. targets, water, the four
  * meals, and a nudge to weigh in. Swipe days with the arrows in the header.
  */
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -35,22 +35,13 @@ export default function FoodDiaryScreen() {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={day.isRefetching && !day.isPlaceholderData} onRefresh={() => void day.refetch()} />}>
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <Pressable onPress={() => router.push('/food/recipes')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Recipes">
-              <Icon name="book-outline" size={22} color="accentText" />
-            </Pressable>
-          ),
-        }}
-      />
       <DaySwitcher date={date} today={today} onChange={setDate} />
 
       {profile.data === null && (
-        <Card onPress={() => router.push('/food/goals')} style={styles.setup} accessibilityLabel="Set your goal">
+        <Card onPress={() => router.push('/food/plan')} style={styles.setup} accessibilityLabel="Set up your plan">
           <Icon name="flag-outline" size={22} color="accentText" />
           <View style={{ flex: 1 }}>
-            <Text variant="headline">Set your goal</Text>
+            <Text variant="headline">Set up your plan</Text>
             <Text variant="footnote" color="textSecondary">
               Get daily calorie and macro targets based on your body and timeline.
             </Text>
@@ -64,6 +55,7 @@ export default function FoodDiaryScreen() {
       ) : day.data ? (
         <View style={[styles.sections, day.isPlaceholderData && { opacity: 0.5 }]}>
           <DaySummary totals={day.data.totals} targets={targets.data ?? null} />
+          <Shortcuts />
           <Water date={date} ml={day.data.waterMl} goalMl={targets.data?.targets.waterMl ?? 2500} />
           {MEALS.map((meal) => (
             <MealSection
@@ -81,6 +73,32 @@ export default function FoodDiaryScreen() {
         <Button title="Log today's weight" icon="scale-outline" variant="secondary" onPress={() => router.push('/weigh-in')} />
       )}
     </ScrollView>
+  );
+}
+
+/** The Food tab's other places, labeled: trends, recipes, and your plan. */
+function Shortcuts() {
+  return (
+    <View style={styles.shortcuts}>
+      <Shortcut icon="stats-chart" label="Trends" onPress={() => router.push('/food/trends')} />
+      <Shortcut icon="book" label="Recipes" onPress={() => router.push('/food/recipes')} />
+      <Shortcut icon="person-circle" label="My plan" onPress={() => router.push('/food/plan')} />
+    </View>
+  );
+}
+
+function Shortcut({ icon, label, onPress }: { icon: 'stats-chart' | 'book' | 'person-circle'; label: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.shortcut, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && { opacity: 0.8 }]}>
+      <Icon name={icon} size={18} color="accentText" />
+      <Text variant="subhead" weight="600">
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -245,6 +263,17 @@ const styles = StyleSheet.create({
   sections: { gap: space.xl },
   switcher: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   setup: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  shortcuts: { flexDirection: 'row', gap: space.sm, marginTop: -space.sm },
+  shortcut: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.xs + 2,
+    minHeight: 44,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   water: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   waterButton: { width: 40, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   mealHeader: { flexDirection: 'row', alignItems: 'center', gap: space.md },
