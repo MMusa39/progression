@@ -106,8 +106,20 @@ def main():
                 skipped += 1  # the server already has a newer copy of this workout
     print(f"Seeded {created} workouts over {args.weeks} weeks for '{args.subject}'"
           + (f" ({skipped} already existed)." if skipped else "."))
+    seed_routines(args, token, catalog, ids)
     if not args.no_food:
         seed_body_and_food(args, token, rng, ids)
+
+
+def seed_routines(args, token, catalog, ids):
+    """One routine per program day, with rep ranges around the program's reps."""
+    for name, exercises in PROGRAM.items():
+        request(args.api, "PUT", f"/api/v1/routines/{uuid.uuid5(ids, f'routine-{name}')}", token, {
+            "name": name,
+            "exercises": [{"exerciseId": catalog[exercise], "sets": sets, "repMin": max(1, reps - 2), "repMax": reps}
+                          for exercise, _, _, reps, sets in exercises],
+        })
+    print(f"Seeded {len(PROGRAM)} routines.")
 
 
 # (meal, name, kcal, protein, carbs, fat): a typical day while cutting
