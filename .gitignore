@@ -1,0 +1,27 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+
+# Java / Gradle (backend, infra)
+build/
+.gradle/
+*.class
+
+# AWS CDK
+cdk.out/
+.cdk.staging/
+
+# Node / Expo (mobile)
+node_modules/
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+
+# Env files & secrets (examples are committed)
+.env
+.env.*
+!.env.example
