@@ -29,6 +29,7 @@ export default function AppLayout() {
       <Stack.Screen name="workout" options={{ presentation: 'modal' }} />
       <Stack.Screen name="workout-complete" options={{ presentation: 'modal' }} />
       <Stack.Screen name="invite/[code]" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="weigh-in" options={{ presentation: 'modal' }} />
       <Stack.Screen
         name="exercise-picker"
         options={{

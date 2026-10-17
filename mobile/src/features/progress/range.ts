@@ -76,6 +76,9 @@ export function previousPeriodLabel(range: ProgressRange): string | null {
 }
 
 type RangeState = ProgressRange & {
+  /** Which Progress view is showing; remembered between visits. */
+  view: 'strength' | 'body';
+  setView: (view: 'strength' | 'body') => void;
   setPreset: (preset: Exclude<RangePreset, 'CUSTOM'>) => void;
   setCustom: (count: number, unit: RangeUnit) => void;
 };
@@ -86,6 +89,8 @@ export const useProgressRange = create<RangeState>()(
       preset: '3M',
       customCount: 8,
       customUnit: 'weeks',
+      view: 'strength',
+      setView: (view) => set({ view }),
       setPreset: (preset) => set({ preset }),
       setCustom: (count, unit) =>
         set({ preset: 'CUSTOM', customCount: Math.max(1, Math.min(CUSTOM_LIMITS[unit], Math.round(count))), customUnit: unit }),

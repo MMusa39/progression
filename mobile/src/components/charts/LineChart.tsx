@@ -31,6 +31,8 @@ type LineChartProps = {
   /** Optional extra tooltip text for a point, e.g. "185 × 5". */
   formatDetail?: (index: number) => string | undefined;
   accessibilityLabel: string;
+  /** Faint background points (e.g. daily weigh-ins behind a smoothed trend line). Not touchable. */
+  dots?: { x: number; y: number }[];
   /**
    * Show the latest point in the readout when nothing is touched. Turn off when
    * the screen already shows the latest value prominently, to avoid repeating it.
@@ -51,6 +53,7 @@ export function LineChart({
   formatX,
   formatDetail,
   accessibilityLabel,
+  dots = [],
   restingReadout = true,
 }: LineChartProps) {
   const padTop = restingReadout ? PAD_TOP.withReadout : PAD_TOP.touchOnly;
@@ -58,7 +61,7 @@ export function LineChart({
   const [width, setWidth] = useState(0);
 
   // Callers render an empty state instead; guard anyway so a chart never crashes a screen.
-  const ys = data.length > 0 ? data.map((p) => p.y) : [0];
+  const ys = data.length > 0 ? [...data.map((p) => p.y), ...dots.map((d) => d.y)] : [0];
   const ticks = niceTicks(Math.min(...ys), Math.max(...ys), 4);
   const tickLabels = ticks.map(formatAxis);
   const padLeft = Math.max(...tickLabels.map((l) => l.length)) * 6.5 + 12;
@@ -91,6 +94,9 @@ export function LineChart({
           ))}
 
           <Path d={area} fill={colors.chartWash} />
+          {dots.map((d, i) => (
+            <Circle key={`d${i}`} cx={x(d.x)} cy={y(d.y)} r={2.5} fill={colors.textTertiary} opacity={0.6} />
+          ))}
           <Path d={line} stroke={colors.chart} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" fill="none" />
 
           {active !== null && (

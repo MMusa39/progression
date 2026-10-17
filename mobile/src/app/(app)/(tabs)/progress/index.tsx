@@ -1,18 +1,21 @@
 /**
- * Progress tab: the three questions a lifter actually asks.
+ * Progress tab, in two views sharing one time range:
  *
+ * Strength: the three questions a lifter actually asks.
  *   1. Am I showing up?        → workouts in the range + weekly streak
  *   2. Did I set any records?  → recent PRs
  *   3. Is each lift improving? → every lift trained in the range, with how much it moved
  *
- * One time-range control at the top scopes everything below it.
+ * Body: weigh-ins and the smoothed weight trend (see BodyOverview).
  */
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Sparkline } from '@/components/charts';
-import { Button, EmptyState, Icon, Text } from '@/components/ui';
+import { Button, EmptyState, Icon, SegmentedControl, Text } from '@/components/ui';
+import { BodyOverview } from '@/features/body/BodyOverview';
 import { useExerciseStats, useRecentRecords, useStatsSummary, useWeightUnit } from '@/features/api/queries';
 import type { ExerciseStats, RecentRecord, StatsSummary, WeightUnit } from '@/features/api/types';
 import { shortDate } from '@/features/progress/dates';
@@ -28,6 +31,41 @@ import { useTheme } from '@/theme/useTheme';
 const RECORDS_PREVIEW = 4;
 
 export default function ProgressScreen() {
+  const queryClient = useQueryClient();
+  const view = useProgressRange((s) => s.view);
+  const setView = useProgressRange((s) => s.setView);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['stats'] }),
+      queryClient.invalidateQueries({ queryKey: ['body'] }),
+    ]);
+    setRefreshing(false);
+  };
+
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+      <SegmentedControl<'strength' | 'body'>
+        accessibilityLabel="Progress view"
+        options={[
+          { value: 'strength', label: 'Strength' },
+          { value: 'body', label: 'Body weight' },
+        ]}
+        value={view}
+        onChange={setView}
+      />
+      <RangeFilter />
+      {view === 'strength' ? <StrengthOverview /> : <BodyOverview />}
+    </ScrollView>
+  );
+}
+
+function StrengthOverview() {
   const range = useProgressRange();
   const from = useMemo(() => rangeStart(range), [range]);
   const summary = useStatsSummary(from, deviceTimeZone());
@@ -53,30 +91,19 @@ export default function ProgressScreen() {
 
   if ((allTime.data?.workouts ?? 0) === 0) {
     return (
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
-        <EmptyState
-          icon="trending-up"
-          title="Your progress starts here"
-          message="Finish a workout and this screen shows how each lift is improving, your personal records, and your weekly streak."
-          action={<Button title="Start a workout" icon="add" fullWidth={false} onPress={startEmpty} />}
-        />
-      </ScrollView>
+      <EmptyState
+        icon="trending-up"
+        title="Your progress starts here"
+        message="Finish a workout and this screen shows how each lift is improving, your personal records, and your weekly streak."
+        action={<Button title="Start a workout" icon="add" fullWidth={false} onPress={startEmpty} />}
+      />
     );
   }
 
   const loadingNewRange = summary.isPlaceholderData || lifts.isPlaceholderData || records.isPlaceholderData;
-  const refetchAll = () => {
-    summary.refetch();
-    lifts.refetch();
-    records.refetch();
-  };
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={summary.isRefetching && !loadingNewRange} onRefresh={refetchAll} />}>
-      <RangeFilter />
+    <>
       {/* While a new range loads, keep the previous content on screen, dimmed: no flash, no layout jump. */}
       <View style={[styles.sections, loadingNewRange && { opacity: 0.5 }]}>
         <Consistency summary={summary.data} comparison={previousPeriodLabel(range)} />
@@ -98,7 +125,7 @@ export default function ProgressScreen() {
           </>
         )}
       </View>
-    </ScrollView>
+    </>
   );
 }
 

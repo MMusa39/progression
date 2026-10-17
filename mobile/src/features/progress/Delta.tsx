@@ -13,16 +13,20 @@ type DeltaProps = {
   context?: string | null;
   /** Tile mode: arrow + percentage only (or the amount when there's no percentage), on one line. */
   compact?: boolean;
+  /** Which way is good news: up (strength), down (weight loss), or neither (no goal set). */
+  good?: 'up' | 'down' | 'none';
 };
 
 /**
  * Signed change with an arrow, e.g. "▲ 15 lb (+7%) since Aug 2". Direction is
  * shown by the arrow and the sign as well as the color, so it never relies on
- * color alone. Here, up is always good (more strength, more training).
+ * color alone. By default up is good (more strength); weight views pass the goal's direction.
  */
-export function Delta({ value, text, percent, context, compact = false }: DeltaProps) {
+export function Delta({ value, text, percent, context, compact = false, good = 'up' }: DeltaProps) {
   const direction = value > 0 ? 'up' : value < 0 ? 'down' : 'flat';
-  const color = direction === 'up' ? 'accentText' : direction === 'down' ? 'danger' : 'textSecondary';
+  const isGood = direction !== 'flat' && good !== 'none' && direction === good;
+  const isBad = direction !== 'flat' && good !== 'none' && direction !== good;
+  const color = isGood ? 'accentText' : isBad ? 'danger' : 'textSecondary';
   const icon = direction === 'up' ? 'arrow-up' : direction === 'down' ? 'arrow-down' : 'remove';
   const sign = direction === 'up' ? '+' : direction === 'down' ? '−' : '±';
   const pct = percent != null && Number.isFinite(percent) ? ` (${sign}${Math.abs(Math.round(percent))}%)` : '';

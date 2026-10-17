@@ -221,3 +221,117 @@ export type StrengthEntry = {
   reps: number;
   achievedAt: string;
 };
+
+// ------------------------------------------------------------------ body weight
+
+export type BodyWeightEntry = { date: string; weight: number; weightUnit: WeightUnit; weightKg: number; trendKg: number };
+
+export type BodyWeightHistory = {
+  entries: BodyWeightEntry[];
+  currentTrendKg: number | null;
+  weeklyChangeKg: number | null;
+  changeInRangeKg: number | null;
+};
+
+// ------------------------------------------------------------------ nutrition goals
+
+export type Sex = 'MALE' | 'FEMALE' | 'UNSPECIFIED';
+export type ActivityLevel = 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'ACTIVE' | 'VERY_ACTIVE';
+
+export type NutritionProfile = {
+  sex: Sex;
+  birthYear: number;
+  heightCm: number;
+  activityLevel: ActivityLevel;
+  goalWeightKg: number;
+  goalDate: string;
+  adaptive: boolean;
+};
+
+export type Targets = {
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  fiberG: number;
+  waterMl: number;
+  bmr: number;
+  formulaTdee: number;
+  tdee: number;
+  tdeeSource: 'FORMULA' | 'ADAPTIVE';
+  dailyDeltaKcal: number;
+  weeklyRateKg: number;
+  goal: 'LOSE' | 'MAINTAIN' | 'GAIN';
+  rateCapped: boolean;
+  atCalorieFloor: boolean;
+  projectedGoalDate: string | null;
+};
+
+export type TargetsResponse = {
+  targets: Targets;
+  currentWeightKg: number;
+  goalWeightKg: number;
+  goalDate: string;
+  adaptiveLoggedDays: number;
+};
+
+// ------------------------------------------------------------------ food
+
+export type Nutrients = { kcal: number; proteinG: number; carbsG: number; fatG: number; fiberG: number };
+
+export type Food = {
+  id: string;
+  name: string;
+  brand: string | null;
+  barcode: string | null;
+  servingG: number | null;
+  servingLabel: string | null;
+  per100g: Nutrients;
+  custom: boolean;
+};
+
+export type Recipe = {
+  id: string;
+  name: string;
+  servings: number;
+  ingredients: { food: Food; grams: number; nutrients: Nutrients }[];
+  total: Nutrients;
+  perServing: Nutrients;
+};
+
+export type Meal = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
+export type AmountUnit = 'G' | 'SERVING';
+
+export type DiaryEntry = {
+  id: string;
+  date: string;
+  meal: Meal;
+  kind: 'FOOD' | 'RECIPE' | 'QUICK';
+  foodId: string | null;
+  recipeId: string | null;
+  name: string;
+  amount: number;
+  amountUnit: AmountUnit;
+  nutrients: Nutrients;
+};
+
+export type DiaryDay = { date: string; entries: DiaryEntry[]; totals: Nutrients; waterMl: number };
+
+export type RecentFoodItem = {
+  kind: 'FOOD' | 'RECIPE';
+  food: Food | null;
+  recipe: Recipe | null;
+  lastAmount: number;
+  lastAmountUnit: AmountUnit;
+};
+
+export type EntryRequest = {
+  date: string;
+  meal: Meal;
+  kind: DiaryEntry['kind'];
+  foodId?: string;
+  recipeId?: string;
+  amount: number;
+  amountUnit: AmountUnit;
+  quick?: { name?: string; kcal: number; proteinG?: number; carbsG?: number; fatG?: number };
+};

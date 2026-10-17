@@ -41,7 +41,13 @@
       "expo-image",
       "expo-status-bar",
       "expo-web-browser",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Progression uses the camera to scan food barcodes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
