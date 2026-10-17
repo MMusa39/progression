@@ -57,7 +57,8 @@ src/main/java/com/progression/
 ├── user/                             /me, just-in-time user provisioning, CurrentUser injection
 ├── exercise/                         exercise catalog + custom exercises
 ├── workout/                          workout aggregate, idempotent upsert, history, last performance
-└── stats/                            progress analytics: summary, progression, records (JdbcClient + SQL)
+├── stats/                            progress analytics: summary, progression, records (JdbcClient + SQL)
+└── social/                           friends, invites, privacy checks, leaderboards
 
 src/main/resources/
 ├── application.yml                   shared config
@@ -99,6 +100,8 @@ Each feature has the same layers:
 | **Window functions** | `StatsRepository#recentRecords` | Each session is compared with `max() OVER (… ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)`, the best of all earlier sessions, to find PRs in one query. |
 | **Derived, never stored** | `stats/` | PRs, streaks and charts are computed from raw sets on request, so editing an old workout corrects everything. |
 | **Testable time** | `common/TimeConfig` | Services take a `Clock` bean instead of calling `Instant.now()`. |
+| **Unordered-pair uniqueness** | `V4__friends.sql` | `UNIQUE (LEAST(a, b), GREATEST(a, b))` makes A→B and B→A the same friendship at the database level. |
+| **Centralized authorization** | `social/FriendService#requireWorkoutAccess` | Every friend endpoint calls one access check first: 404 for strangers, 403 for "PRs only". Reads reuse owner-id service methods. |
 
 ## Testing
 

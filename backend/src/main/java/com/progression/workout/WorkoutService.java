@@ -54,7 +54,18 @@ public class WorkoutService {
 
 	@Transactional(readOnly = true)
 	public WorkoutResponse get(CurrentUser user, UUID workoutId) {
-		return WorkoutResponse.from(findOwned(user, workoutId));
+		return getForOwner(user.id(), workoutId);
+	}
+
+	/**
+	 * A workout owned by {@code ownerId}. Used for viewing a friend's workout;
+	 * the caller must already have checked that the viewer may see it.
+	 */
+	@Transactional(readOnly = true)
+	public WorkoutResponse getForOwner(UUID ownerId, UUID workoutId) {
+		return WorkoutResponse.from(workouts.findById(workoutId)
+				.filter(workout -> workout.getUserId().equals(ownerId))
+				.orElseThrow(() -> new NotFoundException("Workout not found")));
 	}
 
 	/**
@@ -120,17 +131,23 @@ public class WorkoutService {
 	 */
 	@Transactional(readOnly = true)
 	public PageResponse<WorkoutSummaryResponse> list(CurrentUser user, String cursor, Integer pageSize) {
+		return listForOwner(user.id(), cursor, pageSize);
+	}
+
+	/** History of {@code ownerId}. The caller must already have checked that the viewer may see it. */
+	@Transactional(readOnly = true)
+	public PageResponse<WorkoutSummaryResponse> listForOwner(UUID ownerId, String cursor, Integer pageSize) {
 		int size = pageSize == null ? DEFAULT_PAGE_SIZE : Math.clamp(pageSize, 1, MAX_PAGE_SIZE);
 		// Ask for one extra row: if it comes back, there is another page.
 		Limit limit = Limit.of(size + 1);
 
 		List<Workout> rows;
 		if (cursor == null || cursor.isBlank()) {
-			rows = workouts.findByUserIdOrderByStartedAtDescIdDesc(user.id(), limit);
+			rows = workouts.findByUserIdOrderByStartedAtDescIdDesc(ownerId, limit);
 		}
 		else {
 			WorkoutCursor after = WorkoutCursor.decode(cursor);
-			rows = workouts.findPageAfter(user.id(), after.startedAt(), after.id(), limit);
+			rows = workouts.findPageAfter(ownerId, after.startedAt(), after.id(), limit);
 		}
 
 		boolean hasMore = rows.size() > size;
@@ -153,11 +170,6 @@ public class WorkoutService {
 				.map(LastPerformanceResponse::from);
 	}
 
-	private Workout findOwned(CurrentUser user, UUID workoutId) {
-		return workouts.findById(workoutId)
-				.filter(workout -> workout.getUserId().equals(user.id()))
-				.orElseThrow(() -> new NotFoundException("Workout not found"));
-	}
 
 	/** Rules that bean validation can't express: date ordering and duplicate ids. */
 	private static void validateStructure(WorkoutRequest request) {

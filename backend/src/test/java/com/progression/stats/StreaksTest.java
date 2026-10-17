@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /** Pure date logic behind the weekly streak. */
-class StatsServiceTest {
+class StreaksTest {
 
 	// Thursday 2026-10-15
 	private static final LocalDate TODAY = LocalDate.of(2026, 10, 15);
@@ -21,25 +21,25 @@ class StatsServiceTest {
 		@Test
 		void countsConsecutiveWeeksIncludingThisOne() {
 			List<LocalDate> weeks = List.of(THIS_MONDAY, THIS_MONDAY.minusWeeks(1), THIS_MONDAY.minusWeeks(2));
-			assertThat(StatsService.currentStreakWeeks(weeks, TODAY)).isEqualTo(3);
+			assertThat(Streaks.currentStreakWeeks(weeks, TODAY)).isEqualTo(3);
 		}
 
 		@Test
 		void anUnfinishedWeekWithoutAWorkoutDoesNotBreakTheStreak() {
 			List<LocalDate> weeks = List.of(THIS_MONDAY.minusWeeks(1), THIS_MONDAY.minusWeeks(2));
-			assertThat(StatsService.currentStreakWeeks(weeks, TODAY)).isEqualTo(2);
+			assertThat(Streaks.currentStreakWeeks(weeks, TODAY)).isEqualTo(2);
 		}
 
 		@Test
 		void aMissedWeekEndsTheStreak() {
 			List<LocalDate> weeks = List.of(THIS_MONDAY, THIS_MONDAY.minusWeeks(2), THIS_MONDAY.minusWeeks(3));
-			assertThat(StatsService.currentStreakWeeks(weeks, TODAY)).isEqualTo(1);
+			assertThat(Streaks.currentStreakWeeks(weeks, TODAY)).isEqualTo(1);
 		}
 
 		@Test
 		void noRecentTrainingMeansNoStreak() {
-			assertThat(StatsService.currentStreakWeeks(List.of(THIS_MONDAY.minusWeeks(5)), TODAY)).isZero();
-			assertThat(StatsService.currentStreakWeeks(List.of(), TODAY)).isZero();
+			assertThat(Streaks.currentStreakWeeks(List.of(THIS_MONDAY.minusWeeks(5)), TODAY)).isZero();
+			assertThat(Streaks.currentStreakWeeks(List.of(), TODAY)).isZero();
 		}
 	}
 }

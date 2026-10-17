@@ -2,18 +2,15 @@ package com.progression.stats;
 
 import java.time.Clock;
 import java.time.DateTimeException;
-import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -66,27 +63,8 @@ public class StatsService {
 			// The equally long window just before the range, e.g. the 4 weeks before "last 4 weeks".
 			previous = stats.workoutCount(user.id(), from.minus(Duration.between(from, now)), from);
 		}
-		int streak = currentStreakWeeks(stats.activeWeeks(user.id(), zone.getId()), LocalDate.now(clock.withZone(zone)));
+		int streak = Streaks.currentStreakWeeks(stats.activeWeeks(user.id(), zone.getId()), LocalDate.now(clock.withZone(zone)));
 		return new StatsSummaryResponse(from, workouts, previous, streak);
-	}
-
-	/**
-	 * Consecutive training weeks ending this week. If nothing has been logged
-	 * yet this week, the streak counts up to last week: the week isn't over, so
-	 * the streak isn't broken yet.
-	 *
-	 * @param activeWeeks Mondays of weeks with a workout, newest first
-	 */
-	static int currentStreakWeeks(List<LocalDate> activeWeeks, LocalDate today) {
-		LocalDate thisWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-		Set<LocalDate> active = Set.copyOf(activeWeeks);
-		LocalDate cursor = active.contains(thisWeek) ? thisWeek : thisWeek.minusWeeks(1);
-		int streak = 0;
-		while (active.contains(cursor)) {
-			streak++;
-			cursor = cursor.minusWeeks(1);
-		}
-		return streak;
 	}
 
 	// ------------------------------------------------------------------ strength
@@ -117,8 +95,14 @@ public class StatsService {
 	/** Personal records set within the range, newest first. */
 	@Transactional(readOnly = true)
 	public List<RecentRecordResponse> recentRecords(CurrentUser user, Instant from) {
+		return recentRecordsOf(user.id(), from);
+	}
+
+	/** Records of any user (e.g. a friend); the caller must already have checked access. */
+	@Transactional(readOnly = true)
+	public List<RecentRecordResponse> recentRecordsOf(UUID userId, Instant from) {
 		validateFrom(from, clock.instant());
-		return stats.recentRecords(user.id(), from != null ? from : Instant.EPOCH, RECENT_RECORDS_LIMIT);
+		return stats.recentRecords(userId, from != null ? from : Instant.EPOCH, RECENT_RECORDS_LIMIT);
 	}
 
 	/**

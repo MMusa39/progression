@@ -38,6 +38,16 @@ public class AppUser {
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
+	/** Unique lowercase handle, shown as @username. {@code null} until the user picks one. */
+	private String username;
+
+	/** Whether friends may see individual workouts. PRs are always shared with friends. */
+	@Column(nullable = false)
+	private boolean shareWorkouts = true;
+
+	/** Secret part of the user's invite link; {@code null} until first requested. */
+	private String inviteCode;
+
 	/** Required by JPA. Users are created with {@link AppUserRepository#insertIfAbsent}. */
 	protected AppUser() {
 	}
@@ -64,6 +74,30 @@ public class AppUser {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public boolean isShareWorkouts() {
+		return shareWorkouts;
+	}
+
+	public String getInviteCode() {
+		return inviteCode;
+	}
+
+	void setUsername(String username) {
+		this.username = username;
+	}
+
+	void setShareWorkouts(boolean shareWorkouts) {
+		this.shareWorkouts = shareWorkouts;
+	}
+
+	void setInviteCode(String inviteCode) {
+		this.inviteCode = inviteCode;
 	}
 
 	void setDisplayName(String displayName) {
