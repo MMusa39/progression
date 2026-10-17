@@ -140,15 +140,26 @@ def seed_body_and_food(args, token, rng, ids):
         })
 
     entries = 0
+    skipped_days = {9, 20}  # nobody logs every single day
     for back in range(28, -1, -1):
         day = today - dt.timedelta(days=back)
+        # Weekends run high; some weekdays come in under. Real adherence is never perfect.
+        weekend = day.weekday() >= 4
+        day_scale = rng.uniform(1.15, 1.4) if weekend else rng.uniform(0.85, 1.08)
+        low_protein = rng.random() < 0.25
         for index, (meal, name, kcal, protein, carbs, fat) in enumerate(MEALS):
-            if back == 0 and meal == "DINNER":
-                continue  # today's dinner hasn't happened yet
-            scale = rng.uniform(0.85, 1.15)
-            request(args.api, "PUT", f"/api/v1/diary/entries/{uuid.uuid5(ids, f'food-{back}-{index}')}", token, {
+            entry_id = uuid.uuid5(ids, f'food-{back}-{index}')
+            if back in skipped_days or (back == 0 and meal == "DINNER"):  # today's dinner hasn't happened yet
+                try:
+                    request(args.api, "DELETE", f"/api/v1/diary/entries/{entry_id}", token)
+                except urllib.error.HTTPError:
+                    pass
+                continue
+            scale = day_scale * rng.uniform(0.9, 1.1)
+            protein_scale = scale * (0.7 if low_protein else 1)
+            request(args.api, "PUT", f"/api/v1/diary/entries/{entry_id}", token, {
                 "date": str(day), "meal": meal, "kind": "QUICK", "amount": 1, "amountUnit": "SERVING",
-                "quick": {"name": name, "kcal": round(kcal * scale), "proteinG": round(protein * scale),
+                "quick": {"name": name, "kcal": round(kcal * scale), "proteinG": round(protein * protein_scale),
                           "carbsG": round(carbs * scale), "fatG": round(fat * scale)},
             })
             entries += 1

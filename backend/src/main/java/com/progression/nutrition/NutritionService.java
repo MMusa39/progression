@@ -144,13 +144,15 @@ public class NutritionService {
 	}
 
 	/**
-	 * Intake per day from {@code from} (default: the first day ever logged) to
-	 * {@code today}, compared against today's targets, with adherence and the
-	 * logging streak. Ranges are capped at two years.
+	 * Intake per day from {@code from} to {@code today}, compared against today's
+	 * targets, with adherence and the logging streak. The range never starts
+	 * before the first day anything was logged (days before you started aren't
+	 * "missed"), and is capped at two years.
 	 */
 	@Transactional(readOnly = true)
 	public TrendsResponse trends(UUID userId, LocalDate from, LocalDate today) {
-		LocalDate start = from != null ? from : diary.firstLoggedDay(userId).orElse(today);
+		LocalDate firstLogged = diary.firstLoggedDay(userId).orElse(today);
+		LocalDate start = from == null || from.isBefore(firstLogged) ? firstLogged : from;
 		if (start.isAfter(today)) {
 			start = today;
 		}

@@ -107,14 +107,16 @@ class NutritionApiTest extends IntegrationTest {
 		logQuick(user, TODAY.minusDays(1), 3200, 100);
 		logQuick(user, TODAY, 900, 50);
 
+		// Asked for a week, but logging started 3 days ago: earlier days aren't "missed".
 		JsonNode trends = get(user, "/api/v1/nutrition/trends?from=" + TODAY.minusDays(6) + "&today=" + TODAY);
-		assertThat(trends.get("days")).hasSize(7);
-		assertThat(trends.get("days").get(0).get("intake").isNull()).isTrue();
+		assertThat(trends.get("from").asString()).isEqualTo(TODAY.minusDays(3).toString());
+		assertThat(trends.get("days")).hasSize(4);
+		assertThat(trends.get("days").get(1).get("intake").isNull()).isTrue();
 		assertThat(trends.get("goals").get("calories").asInt()).isEqualTo(2510);
 		assertThat(trends.get("rules").get("calorieTolerance").asDouble()).isEqualTo(0.1);
 
 		JsonNode summary = trends.get("summary");
-		assertThat(summary.get("finishedDays").asInt()).isEqualTo(6);
+		assertThat(summary.get("finishedDays").asInt()).isEqualTo(3);
 		assertThat(summary.get("loggedDays").asInt()).isEqualTo(2);
 		assertThat(summary.get("onTarget").get("calories").asInt()).isEqualTo(1);
 		assertThat(summary.get("loggingStreak").asInt()).isEqualTo(2); // yesterday + today
