@@ -79,6 +79,12 @@ public class FoodService {
 	}
 
 	@Transactional(readOnly = true)
+	public FoodResponse get(UUID userId, UUID foodId) {
+		return foods.findVisible(userId, foodId).map(FoodResponse::from)
+				.orElseThrow(() -> new NotFoundException("Food not found"));
+	}
+
+	@Transactional(readOnly = true)
 	public List<FoodResponse> customFoods(UUID userId) {
 		return foods.customFoods(userId).stream().map(FoodResponse::from).toList();
 	}

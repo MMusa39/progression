@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Seed the LOCAL API with realistic training history, so the Progress charts
-have something to show during development.
+have something to show during development. Also seeds six weeks of weigh-ins,
+four weeks of food-diary entries and a nutrition goal (skip with --no-food).
 
 Creates ~16 weeks of a push / pull / legs program for one user: three sessions
 a week, weights that progress with some realistic noise, a deload week, a
@@ -50,6 +51,7 @@ def main():
     parser.add_argument("--subject", default="dev-user")
     parser.add_argument("--weeks", type=int, default=16)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--no-food", action="store_true", help="only seed workouts")
     args = parser.parse_args()
     rng = random.Random(args.seed)
     ids = uuid.UUID(int=rng.getrandbits(128))  # namespace for deterministic ids
@@ -104,6 +106,54 @@ def main():
                 skipped += 1  # the server already has a newer copy of this workout
     print(f"Seeded {created} workouts over {args.weeks} weeks for '{args.subject}'"
           + (f" ({skipped} already existed)." if skipped else "."))
+    if not args.no_food:
+        seed_body_and_food(args, token, rng, ids)
+
+
+# (meal, name, kcal, protein, carbs, fat): a typical day while cutting
+MEALS = [
+    ("BREAKFAST", "Greek yogurt, oats & berries", 480, 38, 62, 9),
+    ("LUNCH", "Chicken rice bowl", 690, 52, 78, 16),
+    ("SNACK", "Protein shake & banana", 260, 26, 32, 3),
+    ("DINNER", "Salmon, potatoes & greens", 720, 44, 58, 32),
+]
+
+
+def seed_body_and_food(args, token, rng, ids):
+    """Weigh-ins trending ~180 -> 176 lb, a goal, and a diary that fits the trend."""
+    today = dt.date.today()
+    weigh_ins = 0
+    for back in range(42, -1, -1):
+        day = today - dt.timedelta(days=back)
+        if back > 0 and rng.random() < 0.25:
+            continue  # nobody weighs in every single day
+        weight = 180 - (42 - back) * 0.1 + rng.uniform(-1.2, 1.2)
+        request(args.api, "PUT", f"/api/v1/body-weights/{day}", token,
+                {"weight": round(weight, 1), "weightUnit": "LB", "today": str(today)})
+        weigh_ins += 1
+
+    if request(args.api, "GET", "/api/v1/nutrition/profile", token) is None:
+        request(args.api, "PUT", "/api/v1/nutrition/profile", token, {
+            "sex": "MALE", "birthYear": 1999, "heightCm": 178, "activityLevel": "MODERATE",
+            "goalWeight": 170, "weightUnit": "LB", "goalDate": str(today + dt.timedelta(weeks=12)),
+            "adaptive": True, "today": str(today),
+        })
+
+    entries = 0
+    for back in range(28, -1, -1):
+        day = today - dt.timedelta(days=back)
+        for index, (meal, name, kcal, protein, carbs, fat) in enumerate(MEALS):
+            if back == 0 and meal == "DINNER":
+                continue  # today's dinner hasn't happened yet
+            scale = rng.uniform(0.85, 1.15)
+            request(args.api, "PUT", f"/api/v1/diary/entries/{uuid.uuid5(ids, f'food-{back}-{index}')}", token, {
+                "date": str(day), "meal": meal, "kind": "QUICK", "amount": 1, "amountUnit": "SERVING",
+                "quick": {"name": name, "kcal": round(kcal * scale), "proteinG": round(protein * scale),
+                          "carbsG": round(carbs * scale), "fatG": round(fat * scale)},
+            })
+            entries += 1
+        request(args.api, "PUT", f"/api/v1/diary/{day}/water", token, {"ml": rng.choice([1500, 2000, 2250, 2500, 3000])})
+    print(f"Seeded {weigh_ins} weigh-ins and {entries} food entries over 4 weeks.")
 
 
 if __name__ == "__main__":

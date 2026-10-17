@@ -58,6 +58,9 @@ class FoodApiTest extends IntegrationTest {
 		// Custom foods are private.
 		var other = mvc.get().uri("/api/v1/foods/search?q={q}", "protein bar").with(as(newUser())).exchange();
 		assertThat(json.readTree(other.getResponse().getContentAsString())).noneMatch(f -> f.get("id").equals(food.get("id")));
+		String id = food.get("id").asString();
+		assertThat(mvc.get().uri("/api/v1/foods/{id}", id).with(as(user))).hasStatusOk();
+		assertThat(mvc.get().uri("/api/v1/foods/{id}", id).with(as(newUser()))).hasStatus(HttpStatus.NOT_FOUND);
 	}
 
 	@Test

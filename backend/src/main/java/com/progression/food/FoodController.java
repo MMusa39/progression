@@ -50,6 +50,12 @@ public class FoodController {
 		return foods.search(me.id(), query);
 	}
 
+	@GetMapping("/foods/{id:[0-9a-fA-F-]{36}}")
+	@Operation(summary = "One food (shared or your own)")
+	public FoodResponse food(CurrentUser me, @PathVariable UUID id) {
+		return foods.get(me.id(), id);
+	}
+
 	@GetMapping("/foods/mine")
 	@Operation(summary = "Your custom foods")
 	public List<FoodResponse> customFoods(CurrentUser me) {
