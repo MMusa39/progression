@@ -244,6 +244,17 @@ class WorkoutApiTest extends IntegrationTest {
 	}
 
 	@Test
+	void lastPerformanceCarriesTheExerciseNote() {
+		UUID id = UUID.randomUUID();
+		var noted = new WorkoutRequest.ExerciseEntry(UUID.randomUUID(), benchPress, "Seat at 4, wide grip", List.of(set(185, 8)));
+		put(id, workout(MONDAY, noted)).exchange();
+
+		assertThat(mvc.get().uri("/api/v1/exercises/{id}/last-performance", benchPress).with(as(user)))
+				.hasStatusOk()
+				.bodyJson().extractingPath("$.notes").isEqualTo("Seat at 4, wide grip");
+	}
+
+	@Test
 	void lastPerformanceIsEmptyForANeverPerformedExercise() {
 		assertThat(mvc.get().uri("/api/v1/exercises/{id}/last-performance", backSquat).with(as(user)))
 				.hasStatus(HttpStatus.NO_CONTENT);

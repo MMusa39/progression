@@ -34,6 +34,10 @@ PROGRAM = {
 }
 
 
+# Setup notes that carry from session to session ("sticky" notes in the logger).
+NOTES = {"Bench Press": "Index fingers on the rings, feet planted", "Leg Press": "Seat at 4"}
+
+
 def request(base, method, path, token=None, body=None):
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if token:
@@ -85,7 +89,7 @@ def main():
                 workout_exercises.append({
                     "id": str(uuid.uuid5(ids, f"{week}-{day_index}-{ex_index}")),
                     "exerciseId": catalog[exercise],
-                    "notes": None,
+                    "notes": NOTES.get(exercise),
                     "sets": [{
                         "id": str(uuid.uuid5(ids, f"{week}-{day_index}-{ex_index}-{i}")),
                         "setType": t, "weight": w, "weightUnit": "LB", "reps": r, "rpe": None,
