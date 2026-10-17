@@ -5,7 +5,7 @@
 import { randomUUID } from 'expo-crypto';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { Button, Card, Icon, Screen, Text, TextField } from '@/components/ui';
 import { NutritionPreview } from '@/features/food/NutritionPreview';
@@ -51,6 +51,7 @@ export default function RecipeEditorScreen() {
         id: draft.id!,
         name: draft.name.trim(),
         servings,
+        shared: draft.shared,
         ingredients: draft.ingredients.map((i) => ({ foodId: i.food.id, grams: i.grams })),
       },
       { onSuccess: () => router.back(), onError: (e) => Alert.alert("Couldn't save", e.message) },
@@ -117,6 +118,23 @@ export default function RecipeEditorScreen() {
         variant="secondary"
         onPress={() => router.push({ pathname: '/food/add', params: { mode: 'ingredient' } })}
       />
+
+      <View style={styles.shareRow}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="body" weight="600">
+            Share with friends
+          </Text>
+          <Text variant="footnote" color="textSecondary">
+            Friends can see this recipe and save a copy. Your diary stays private.
+          </Text>
+        </View>
+        <Switch
+          value={draft.shared}
+          onValueChange={draft.setShared}
+          trackColor={{ true: colors.accent }}
+          accessibilityLabel="Share with friends"
+        />
+      </View>
     </Screen>
   );
 }
@@ -147,6 +165,7 @@ function GramsInput({ value, onChange }: { value: number; onChange: (grams: numb
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md },
+  shareRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   grams: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: radius.sm, paddingHorizontal: space.sm, width: 84 },
-  gramsInput: { flex: 1, fontSize: 17, fontWeight: '600', paddingVertical: 6, textAlign: 'right', marginRight: 2 },
+  gramsInput: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: '600', paddingVertical: 6, textAlign: 'right', marginRight: 2 },
 });

@@ -12,10 +12,12 @@ type RecipeDraftState = {
   id: string | null;
   name: string;
   servings: number;
+  shared: boolean;
   ingredients: DraftIngredient[];
   load: (id: string, recipe?: Recipe) => void;
   setName: (name: string) => void;
   setServings: (servings: number) => void;
+  setShared: (shared: boolean) => void;
   addIngredient: (food: Food) => void;
   setGrams: (index: number, grams: number) => void;
   removeIngredient: (index: number) => void;
@@ -25,16 +27,19 @@ export const useRecipeDraft = create<RecipeDraftState>()((set) => ({
   id: null,
   name: '',
   servings: 1,
+  shared: false,
   ingredients: [],
   load: (id, recipe) =>
     set({
       id,
       name: recipe?.name ?? '',
       servings: recipe?.servings ?? 1,
+      shared: recipe?.shared ?? false,
       ingredients: recipe?.ingredients.map((i) => ({ food: i.food, grams: i.grams })) ?? [],
     }),
   setName: (name) => set({ name }),
   setServings: (servings) => set({ servings }),
+  setShared: (shared) => set({ shared }),
   // Default amount: one serving if the food has one, otherwise 100 g.
   addIngredient: (food) => set((s) => ({ ingredients: [...s.ingredients, { food, grams: food.servingG ?? 100 }] })),
   setGrams: (index, grams) => set((s) => ({ ingredients: s.ingredients.map((i, n) => (n === index ? { ...i, grams } : i)) })),

@@ -57,6 +57,7 @@ export default function GoalsScreen() {
 }
 
 function GoalForm({ profile, currentKg, unit }: { profile: NutritionProfile | null; currentKg: number | null; unit: WeightUnit }) {
+  const { colors } = useTheme();
   const save = useSaveProfile();
   const today = localDate();
   const imperial = unit === 'LB';
@@ -167,7 +168,7 @@ function GoalForm({ profile, currentKg, unit }: { profile: NutritionProfile | nu
             After two weeks of logging, compare what you eat with how your weight actually moves, and fine-tune your target.
           </Text>
         </View>
-        <Switch value={adaptive} onValueChange={setAdaptive} accessibilityLabel="Adaptive targets" />
+        <Switch value={adaptive} onValueChange={setAdaptive} trackColor={{ true: colors.accent }} accessibilityLabel="Adaptive targets" />
       </Card>
 
       {save.error && (

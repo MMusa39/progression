@@ -297,6 +297,11 @@ export type Recipe = {
   ingredients: { food: Food; grams: number; nutrients: Nutrients }[];
   total: Nutrients;
   perServing: Nutrients;
+  /** Visible to friends. */
+  shared: boolean;
+  /** Set on a friend's shared recipe: who shared it, and your saved copy if any. */
+  sharedBy: { id: string; username: string | null; displayName: string | null } | null;
+  savedCopyId: string | null;
 };
 
 export type Meal = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';

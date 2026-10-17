@@ -54,8 +54,11 @@ src/
 │   ├── (auth)/                  Signed-out flow: welcome, sign-up, confirm, sign-in, forgot-password
 │   └── (app)/                   Signed-in area
 │       ├── _layout.tsx          Stack: tabs + modals, background sync
-│       ├── (tabs)/              Native tab bar: (home) Workout · history · progress · profile
-│       ├── (tabs)/progress/     Progress overview + per-exercise charts ([exerciseId].tsx)
+│       ├── (tabs)/              Native tab bar (never minimizes): Workout · Food · Progress · Friends · Profile
+│       ├── (tabs)/(home)/       Workout home + history (/history, /history/[id])
+│       ├── (tabs)/food/         Diary, add/search, scan, item, quick add, custom food, goals, recipes, shared recipes
+│       ├── (tabs)/progress/     Strength | Body weight overview + per-exercise charts ([exerciseId].tsx)
+│       ├── weigh-in.tsx         Log or edit a weigh-in (modal)
 │       ├── workout.tsx          Active workout logger (modal sheet)
 │       ├── workout-complete.tsx Session summary + personal-record celebration
 │       └── exercise-picker.tsx  Search/filter/multi-select, create custom exercises
@@ -67,7 +70,10 @@ src/
 │   ├── auth/                    Cognito client, Google OAuth (PKCE), secure session, dev sign-in
 │   ├── api/                     HTTP client, API types, TanStack Query hooks
 │   ├── workout/                 Active-workout store, upload queue, formatting, workout UI
-│   └── progress/                Time-range store + filter, chart metrics, KPI tiles, PR display
+│   ├── progress/                Time-range store + filter, chart metrics, KPI tiles, PR display
+│   ├── body/                    Weigh-in queries, body-weight overview (trend chart, goal card)
+│   ├── nutrition/               Goal profile + targets queries
+│   └── food/                    Diary/food/recipe queries, recipe draft store, day summary, meal helpers
 └── lib/                         Small framework-free helpers (JWT decode, query client)
 ```
 
@@ -155,6 +161,31 @@ iPhone usually a development build:
    npx eas-cli@latest build --profile development --platform ios
    npx expo start --dev-client
    ```
+
+### Food and body weight
+
+- **Food tab:** a day at a time (swipe days with the arrows; tap the date for
+  today). The summary shows calories eaten vs. target and protein/carbs/fat
+  bars; tap it to edit your goal. Each meal lists its entries (tap to edit,
+  long-press to delete), with **Add food** and **Copy previous day**.
+- **Add food** searches your foods and cached Open Food Facts products, and
+  offers **Scan**, **Quick add** and **New food**, plus Recent / My foods /
+  Recipes tabs. Picking something opens the amount screen (servings or grams)
+  with live nutrition.
+- **Barcode scanning** (`food/scan.tsx`) uses `expo-camera`'s `CameraView`,
+  which works in Expo Go on a phone after you allow camera access. A found
+  product opens the amount screen; an unknown one opens **New food** with the
+  barcode filled in, so the next scan finds it. (The web preview can't scan.)
+- **Recipes** are edited in a small zustand draft (`features/food/recipeDraft.ts`)
+  so "Add ingredient" can reuse the normal search/scan screens and drop the
+  pick back into the recipe. **Share with friends** makes a recipe visible
+  under Recipes → From friends, where friends can **Save to my recipes**.
+- **Progress → Body weight** shows the trend weight (big number), the change
+  over the range, the weekly rate, your goal and projected date, and a chart of
+  the trend line over faint daily weigh-ins.
+- Dates for diary days and weigh-ins are **local calendar dates**
+  (`lib/dates.ts`), never UTC instants, so late-night logging lands on the
+  right day.
 
 ### Progress charts
 

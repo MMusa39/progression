@@ -11,6 +11,8 @@ export const foodKeys = {
   mine: ['food', 'mine'] as const,
   recipes: ['recipes'] as const,
   recipe: (id: string) => ['recipes', id] as const,
+  sharedRecipes: ['sharedRecipes'] as const,
+  sharedRecipe: (id: string) => ['sharedRecipes', id] as const,
 };
 
 export function useDiaryDay(date: string) {
@@ -121,7 +123,7 @@ export function useCreateFood() {
 export function useSaveRecipe() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; name: string; servings: number; ingredients: { foodId: string; grams: number }[] }) =>
+    mutationFn: ({ id, ...body }: { id: string; name: string; servings: number; shared: boolean; ingredients: { foodId: string; grams: number }[] }) =>
       apiRequest<Recipe>(`/api/v1/recipes/${id}`, { method: 'PUT', body }),
     onSuccess: (recipe) => {
       queryClient.setQueryData(foodKeys.recipe(recipe.id), recipe);
@@ -135,6 +137,34 @@ export function useDeleteRecipe() {
   return useMutation({
     mutationFn: (id: string) => apiRequest<void>(`/api/v1/recipes/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: foodKeys.recipes }),
+  });
+}
+
+/** Recipes friends have shared with you. */
+export function useSharedRecipes() {
+  return useQuery({ queryKey: foodKeys.sharedRecipes, queryFn: () => apiRequest<Recipe[]>('/api/v1/recipes/shared') });
+}
+
+export function useSharedRecipe(id: string | undefined) {
+  return useQuery({
+    queryKey: foodKeys.sharedRecipe(id ?? ''),
+    queryFn: () => apiRequest<Recipe>(`/api/v1/recipes/shared/${id}`),
+    enabled: Boolean(id),
+  });
+}
+
+/** Save your own copy of a friend's recipe (saving twice returns the same copy). */
+export function useCopyRecipe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sourceId, id }: { sourceId: string; id: string }) =>
+      apiRequest<Recipe>(`/api/v1/recipes/shared/${sourceId}/copy`, { method: 'POST', body: { id } }),
+    onSuccess: (recipe) => {
+      queryClient.setQueryData(foodKeys.recipe(recipe.id), recipe);
+      queryClient.invalidateQueries({ queryKey: foodKeys.recipes });
+      queryClient.invalidateQueries({ queryKey: foodKeys.sharedRecipes });
+      queryClient.invalidateQueries({ queryKey: foodKeys.mine });
+    },
   });
 }
 
